@@ -51,9 +51,18 @@ struct MiiData {
     u32_be specialness_and_creation_date;
     std::array<u8, 0x6> creator_mac;
     u16_be padding;
-    u16_be mii_information;
+    union {
+        u16 raw;
+
+        BitField<0, 1, u16> gender;
+        BitField<1, 4, u16> birth_month;
+        BitField<5, 5, u16> birth_day;
+        BitField<10, 4, u16> favorite_color;
+        BitField<14, 1, u16> favorite;
+    } mii_information;
     std::array<u16_le, 0xA> mii_name;
-    u16_be width_height;
+    u8 height;
+    u8 build;
     union {
         u8 raw;
 
@@ -74,23 +83,74 @@ struct MiiData {
         BitField<0, 3, u8> hair_color;
         BitField<3, 1, u8> flip_hair;
     } appearance_bits3;
-    u32_be unknown1;
     union {
-        u8 raw;
+        u32 raw;
 
-        BitField<0, 5, u8> eyebrow_style;
-        BitField<5, 3, u8> eyebrow_color;
+        BitField<0, 6, u32> eye_type;
+        BitField<6, 3, u32> eye_color;
+        BitField<9, 4, u32> eye_scale;
+        BitField<13, 3, u32> eye_vertical_stretch;
+        BitField<16, 5, u32> eye_rotation;
+        BitField<21, 4, u32> eye_spacing;
+        BitField<25, 5, u32> eye_y_position;
     } appearance_bits4;
     union {
+        u32 raw;
+
+        BitField<0, 5, u32> eyebrow_style;
+        BitField<5, 3, u32> eyebrow_color;
+        BitField<8, 4, u32> eyebrow_scale;
+        BitField<12, 3, u32> eyebrow_yscale;
+        BitField<16, 4, u32> eyebrow_rotation;
+        BitField<21, 4, u32> eyebrow_spacing;
+        BitField<25, 5, u32> eyebrow_y_position;
+    } appearance_bits5;
+    union {
+        u16 raw;
+
+        BitField<0, 5, u16> nose_type;
+        BitField<5, 4, u16> nose_scale;
+        BitField<9, 5, u16> nose_y_position;
+    } appearance_bits6;
+    union {
+        u16 raw;
+
+        BitField<0, 6, u16> mouth_type;
+        BitField<6, 3, u16> mouth_color;
+        BitField<9, 4, u16> mouth_scale;
+        BitField<13, 3, u16> mouth_horizontal_stretch;
+    } appearance_bits7;
+    union {
         u8 raw;
 
-        BitField<0, 4, u8> eyebrow_scale;
-        BitField<4, 3, u8> eyebrow_yscale;
-    } appearance_bits5;
-    u16_be appearance_bits6;
-    u32_be unknown2;
+        BitField<0, 5, u8> mouth_y_position;
+        BitField<5, 3, u8> mustache_type;
+    } appearance_bits8;
     u8 allow_copying;
-    std::array<u8, 0x7> unknown3;
+    union {
+        u16 raw;
+
+        BitField<0, 3, u16> bear_type;
+        BitField<3, 3, u16> facial_hair_color;
+        BitField<6, 4, u16> mustache_scale;
+        BitField<10, 5, u16> mustache_y_position;
+    } appearance_bits9;
+    union {
+        u16 raw;
+
+        BitField<0, 4, u16> glasses_type;
+        BitField<4, 3, u16> glasses_color;
+        BitField<7, 4, u16> glasses_scale;
+        BitField<11, 5, u16> glasses_y_position;
+    } appearance_bits10;
+    union {
+        u16 raw;
+
+        BitField<0, 1, u16> mole_enabled;
+        BitField<1, 4, u16> mole_scale;
+        BitField<5, 5, u16> mole_x_position;
+        BitField<10, 5, u16> mole_y_position;
+    } appearance_bits11;
     std::array<u16_le, 0xA> author_name;
 };
 static_assert(sizeof(MiiData) == 0x5C, "MiiData structure has incorrect size");
