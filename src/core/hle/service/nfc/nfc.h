@@ -8,7 +8,8 @@
 #include <memory>
 #include <boost/serialization/binary_object.hpp>
 #include "common/common_types.h"
-#include "core/hle/service/nfc/amiibo_types.h"
+#include "core/hle/service/nfc/nfc_device.h"
+#include "core/hle/service/nfc/nfc_types.h"
 #include "core/hle/service/service.h"
 
 namespace Core {
@@ -20,26 +21,6 @@ class Event;
 } // namespace Kernel
 
 namespace Service::NFC {
-
-// TODO(FearlessTobi): Add more members to this struct
-struct AmiiboData {
-    std::array<u8, 7> uuid;
-    INSERT_PADDING_BYTES(0x4D);
-    u16_le char_id;
-    u8 char_variant;
-    u8 figure_type;
-    u16_be model_number;
-    u8 series;
-    INSERT_PADDING_BYTES(0x1C1);
-
-private:
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int) {
-        ar& boost::serialization::make_binary_object(this, sizeof(AmiiboData));
-    }
-    friend class boost::serialization::access;
-};
-static_assert(sizeof(AmiiboData) == 0x21C, "AmiiboData is an invalid size");
 
 enum class CommunicationStatus : u8 {
     AttemptInitialize = 1,
@@ -58,7 +39,7 @@ public:
 
         std::shared_ptr<Module> GetModule() const;
 
-        void LoadAmiibo(const AmiiboData& amiibo_data);
+        void LoadAmiibo(const EncryptedNTAG215File& amiibo_data);
 
         void RemoveAmiibo();
 
@@ -224,16 +205,9 @@ public:
     };
 
 private:
-    // Sync nfc_tag_state with amiibo_in_range and signal events on state change.
-    void SyncTagState();
-
-    std::shared_ptr<Kernel::Event> tag_in_range_event;
-    std::shared_ptr<Kernel::Event> tag_out_of_range_event;
-    TagState nfc_tag_state = TagState::NotInitialized;
     CommunicationStatus nfc_status = CommunicationStatus::NfcInitialized;
 
-    AmiiboData amiibo_data{};
-    bool amiibo_in_range = false;
+    std::shared_ptr<NfcDevice> device = nullptr;
 
     template <class Archive>
     void serialize(Archive& ar, const unsigned int);

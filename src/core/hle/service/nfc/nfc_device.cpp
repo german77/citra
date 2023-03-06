@@ -17,26 +17,21 @@ NfcDevice::NfcDevice(Core::System& system) {
     tag_out_of_range_event =
         system.Kernel().CreateEvent(Kernel::ResetType::OneShot, "NFC::tag_out_range_event");
 
-    auto& standard_steady_clock{system.GetTimeManager().GetStandardSteadyClockCore()};
-    current_posix_time = standard_steady_clock.GetCurrentTimePoint(system).time_point;
+    // auto& standard_steady_clock{system.GetTimeManager().GetStandardSteadyClockCore()};
+    // current_posix_time = standard_steady_clock.GetCurrentTimePoint(system).time_point;
 }
 
 NfcDevice::~NfcDevice() = default;
 
-bool NfcDevice::LoadAmiibo(std::span<const u8> data) {
+bool NfcDevice::LoadAmiibo(const EncryptedNTAG215File& data) {
     if (device_state != DeviceState::SearchingForTag) {
         LOG_ERROR(Service_NFC, "Game is not looking for amiibos, current state {}", device_state);
         return false;
     }
 
-    if (data.size() != sizeof(EncryptedNTAG215File)) {
-        LOG_ERROR(Service_NFC, "Not an amiibo, size={}", data.size());
-        return false;
-    }
-
     // TODO: Filter by allowed_protocols here
 
-    memcpy(&encrypted_tag_data, data.data(), sizeof(EncryptedNTAG215File));
+    encrypted_tag_data = data;
 
     device_state = DeviceState::TagFound;
     tag_out_of_range_event->Clear();
@@ -79,7 +74,7 @@ void NfcDevice::Finalize() {
     if (device_state == DeviceState::SearchingForTag || device_state == DeviceState::TagRemoved) {
         StopDetection();
     }
-    device_state = DeviceState::Unavailable;
+    device_state = DeviceState::NotInitialized;
 }
 
 ResultCode NfcDevice::StartDetection(TagProtocol allowed_protocol) {
@@ -216,16 +211,16 @@ ResultCode NfcDevice::GetTagInfo(TagInfo& tag_info) const {
     }
 
     tag_info = {
-        .uuid = encrypted_tag_data.uuid.uid,
-        .uuid_length = static_cast<u8>(encrypted_tag_data.uuid.uid.size()),
+        .uuid_length = static_cast<u16_le>(encrypted_tag_data.uuid.uid.size()),
         .protocol = TagProtocol::TypeA,
         .tag_type = TagType::Type2,
+        .uuid = encrypted_tag_data.uuid.uid,
     };
 
     return RESULT_SUCCESS;
 }
 
-ResultCode NfcDevice::GetCommonInfo(CommonInfo& common_info) const {
+ResultCode NfcDevice::GetAmiiboConfig(AmiiboConfig& common_info) const {
     if (device_state != DeviceState::TagMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         if (device_state == DeviceState::TagRemoved) {
@@ -240,14 +235,22 @@ ResultCode NfcDevice::GetCommonInfo(CommonInfo& common_info) const {
     }
 
     const auto& settings = tag_data.settings;
+    const auto& model_info_data = tag_data.model_info;
 
     // TODO: Validate this data
     common_info = {
         .last_write_date = settings.write_date.GetWriteDate(),
         .write_counter = tag_data.write_counter,
+        .character_id = model_info_data.character_id,
+        .character_variant = model_info_data.character_variant,
+        .series = model_info_data.series,
+        .model_number = model_info_data.model_number,
+        .amiibo_type = model_info_data.amiibo_type,
         .version = 0,
         .application_area_size = sizeof(ApplicationArea),
     };
+
+    static_assert(sizeof(AmiiboConfig) == 0x40, "CommonInfo is an invalid size");
     return RESULT_SUCCESS;
 }
 
@@ -264,9 +267,9 @@ ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
     model_info = {
         .character_id = model_info_data.character_id,
         .character_variant = model_info_data.character_variant,
-        .amiibo_type = model_info_data.amiibo_type,
-        .model_number = model_info_data.model_number,
         .series = model_info_data.series,
+        .model_number = model_info_data.model_number,
+        .amiibo_type = model_info_data.amiibo_type,
     };
     return RESULT_SUCCESS;
 }
@@ -292,12 +295,12 @@ ResultCode NfcDevice::GetRegisterInfo(RegisterInfo& register_info) const {
     const auto& settings = tag_data.settings;
 
     // TODO: Validate this data
-    register_info = {
-        .mii_char_info = tag_data.owner_mii,
-        .creation_date = settings.init_date.GetWriteDate(),
-        .amiibo_name = GetAmiiboName(settings),
-        .font_region = {},
-    };
+    // register_info = {
+    //    .mii_char_info = tag_data.owner_mii,
+    //    .creation_date = settings.init_date.GetWriteDate(),
+    //    .amiibo_name = GetAmiiboName(settings),
+    //    .font_region = {},
+    //};
 
     return RESULT_SUCCESS;
 }
@@ -631,20 +634,20 @@ void NfcDevice::SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo
 }
 
 AmiiboDate NfcDevice::GetAmiiboDate(s64 posix_time) const {
-    const auto& time_zone_manager =
-        system.GetTimeManager().GetTimeZoneContentManager().GetTimeZoneManager();
-    Time::TimeZone::CalendarInfo calendar_info{};
+    // const auto& time_zone_manager =
+    //     system.GetTimeManager().GetTimeZoneContentManager().GetTimeZoneManager();
+    // Time::TimeZone::CalendarInfo calendar_info{};
     AmiiboDate amiibo_date{};
 
     amiibo_date.SetYear(2000);
     amiibo_date.SetMonth(1);
     amiibo_date.SetDay(1);
 
-    if (time_zone_manager.ToCalendarTime({}, posix_time, calendar_info) == RESULT_SUCCESS) {
-        amiibo_date.SetYear(calendar_info.time.year);
-        amiibo_date.SetMonth(calendar_info.time.month);
-        amiibo_date.SetDay(calendar_info.time.day);
-    }
+    // if (time_zone_manager.ToCalendarTime({}, posix_time, calendar_info) == RESULT_SUCCESS) {
+    //     amiibo_date.SetYear(calendar_info.time.year);
+    //     amiibo_date.SetMonth(calendar_info.time.month);
+    //     amiibo_date.SetDay(calendar_info.time.day);
+    // }
 
     return amiibo_date;
 }

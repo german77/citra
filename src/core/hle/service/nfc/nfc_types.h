@@ -19,13 +19,13 @@ enum class ServiceType : u32 {
 };
 
 enum class DeviceState : u32 {
-    Initialized,
-    SearchingForTag,
-    TagFound,
-    TagRemoved,
-    TagMounted,
-    Unavailable,
-    Finalized,
+    NotInitialized = 0,
+    Initialized = 1,
+    SearchingForTag = 2,
+    TagFound = 3,
+    TagRemoved = 4,
+    TagMounted = 5,
+    Unavailable = 6,
 };
 
 enum class ModelType : u32 {
@@ -71,16 +71,7 @@ enum class AmiiboSeries : u8 {
     Diablo,
 };
 
-enum class TagType : u32 {
-    None,
-    Type1, // ISO14443A RW 96-2k bytes 106kbit/s
-    Type2, // ISO14443A RW/RO 540 bytes 106kbit/s
-    Type3, // Sony Felica RW/RO 2k bytes 212kbit/s
-    Type4, // ISO14443A RW/RO 4k-32k bytes 424kbit/s
-    Type5, // ISO15693 RW/RO 540 bytes 106kbit/s
-};
-
-enum class PackedTagType : u8 {
+enum class TagType : u8 {
     None,
     Type1, // ISO14443A RW 96-2k bytes 106kbit/s
     Type2, // ISO14443A RW/RO 540 bytes 106kbit/s
@@ -90,7 +81,7 @@ enum class PackedTagType : u8 {
 };
 
 // Verify this enum. It might be completely wrong default protocol is 0x48
-enum class TagProtocol : u32 {
+enum class TagProtocol : u8 {
     None,
     TypeA = 1U << 0, // ISO14443A
     TypeB = 1U << 1, // ISO14443B
@@ -221,7 +212,7 @@ struct AmiiboModelInfo {
     AmiiboType amiibo_type;
     u16_be model_number;
     AmiiboSeries series;
-    PackedTagType tag_type;
+    TagType tag_type;
     INSERT_PADDING_BYTES(0x4); // Unknown
 };
 static_assert(sizeof(AmiiboModelInfo) == 0xC, "AmiiboModelInfo is an invalid size");
@@ -294,44 +285,52 @@ struct EncryptedNTAG215File {
     u32 CFG0;                        // Defines memory protected by password
     u32 CFG1;                        // Defines number of verification attempts
     NTAG215Password password;        // Password data
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& boost::serialization::make_binary_object(this, sizeof(AmiiboData));
+    }
+    friend class boost::serialization::access;
 };
 static_assert(sizeof(EncryptedNTAG215File) == 0x21C, "EncryptedNTAG215File is an invalid size");
 static_assert(std::is_trivially_copyable_v<EncryptedNTAG215File>,
               "EncryptedNTAG215File must be trivially copyable.");
 
 struct TagInfo {
-    UniqueSerialNumber uuid;
-    INSERT_PADDING_BYTES(0x3);
-    u8 uuid_length;
-    INSERT_PADDING_BYTES(0x15);
+    u16_le uuid_length;
     TagProtocol protocol;
     TagType tag_type;
-    INSERT_PADDING_BYTES(0x30);
+    UniqueSerialNumber uuid;
+    INSERT_PADDING_BYTES(0x20);
 };
-static_assert(sizeof(TagInfo) == 0x58, "TagInfo is an invalid size");
+static_assert(sizeof(TagInfo) == 0x2C, "TagInfo is an invalid size");
 
-struct CommonInfo {
+struct AmiiboConfig {
     WriteDate last_write_date;
     u16 write_counter;
-    u8 version;
-    INSERT_PADDING_BYTES(0x1);
-    u32 application_area_size;
-    INSERT_PADDING_BYTES(0x34);
-};
-static_assert(sizeof(CommonInfo) == 0x40, "CommonInfo is an invalid size");
-
-struct ModelInfo {
     u16 character_id;
     u8 character_variant;
-    AmiiboType amiibo_type;
-    u16 model_number;
     AmiiboSeries series;
-    INSERT_PADDING_BYTES(0x39); // Unknown
+    u16 model_number;
+    AmiiboType amiibo_type;
+    u8 version;
+    u16 application_area_size;
+    INSERT_PADDING_BYTES(0x30);
 };
-static_assert(sizeof(ModelInfo) == 0x40, "ModelInfo is an invalid size");
+static_assert(sizeof(AmiiboConfig) == 0x40, "CommonInfo is an invalid size");
+
+struct ModelInfo {
+    u16_le character_id;
+    u8 character_variant;
+    AmiiboSeries series;
+    u16_le model_number;
+    AmiiboType amiibo_type;
+    INSERT_PADDING_BYTES(0x2F);
+};
+static_assert(sizeof(ModelInfo) == 0x36, "ModelInfo is an invalid size");
 
 struct RegisterInfo {
-    // Service::Mii::CharInfo mii_char_info;
+    HLE::Applets::MiiData mii_data;
     WriteDate creation_date;
     AmiiboName amiibo_name;
     u8 font_region;

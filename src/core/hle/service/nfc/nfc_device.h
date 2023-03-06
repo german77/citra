@@ -22,7 +22,7 @@ public:
     NfcDevice(Core::System& system);
     ~NfcDevice();
 
-    bool LoadAmiibo(std::span<const u8> data);
+    bool LoadAmiibo(const EncryptedNTAG215File& data);
     void CloseAmiibo();
 
     void Initialize();
@@ -35,7 +35,7 @@ public:
     ResultCode Flush();
 
     ResultCode GetTagInfo(TagInfo& tag_info) const;
-    ResultCode GetCommonInfo(CommonInfo& common_info) const;
+    ResultCode GetAmiiboConfig(AmiiboConfig& common_info) const;
     ResultCode GetModelInfo(ModelInfo& model_info) const;
     ResultCode GetRegisterInfo(RegisterInfo& register_info) const;
 
@@ -70,7 +70,7 @@ private:
     TagProtocol allowed_protocols{};
     s64 current_posix_time{};
     MountTarget mount_target{MountTarget::None};
-    DeviceState device_state{DeviceState::Unavailable};
+    DeviceState device_state{DeviceState::NotInitialized};
 
     NTAG215File tag_data{};
     EncryptedNTAG215File encrypted_tag_data{};
