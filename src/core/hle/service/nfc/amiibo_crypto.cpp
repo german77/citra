@@ -19,14 +19,15 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
     const auto& amiibo_data = ntag_file.user_memory;
     LOG_DEBUG(Service_NFC, "uuid_lock=0x{0:x}", ntag_file.static_lock);
     LOG_DEBUG(Service_NFC, "compability_container=0x{0:x}", ntag_file.compability_container);
-    LOG_INFO(Service_NFC, "write_count={}", amiibo_data.write_counter);
+    LOG_DEBUG(Service_NFC, "write_count={}", static_cast<u16>(amiibo_data.write_counter));
 
-    LOG_INFO(Service_NFC, "character_id=0x{0:x}", amiibo_data.model_info.character_id);
-    LOG_INFO(Service_NFC, "character_variant={}", amiibo_data.model_info.character_variant);
-    LOG_INFO(Service_NFC, "amiibo_type={}", amiibo_data.model_info.amiibo_type);
-    LOG_INFO(Service_NFC, "model_number=0x{0:x}", amiibo_data.model_info.model_number);
-    LOG_INFO(Service_NFC, "series={}", amiibo_data.model_info.series);
-    LOG_DEBUG(Service_NFC, "fixed_value=0x{0:x}", amiibo_data.model_info.constant_value);
+    LOG_DEBUG(Service_NFC, "character_id=0x{0:x}", amiibo_data.model_info.character_id);
+    LOG_DEBUG(Service_NFC, "character_variant={}", amiibo_data.model_info.character_variant);
+    LOG_DEBUG(Service_NFC, "amiibo_type={}", amiibo_data.model_info.amiibo_type);
+    LOG_DEBUG(Service_NFC, "model_number=0x{0:x}",
+              static_cast<u16>(amiibo_data.model_info.model_number));
+    LOG_DEBUG(Service_NFC, "series={}", amiibo_data.model_info.series);
+    LOG_DEBUG(Service_NFC, "tag_type=0x{0:x}", amiibo_data.model_info.tag_type);
 
     LOG_DEBUG(Service_NFC, "tag_dynamic_lock=0x{0:x}", ntag_file.dynamic_lock);
     LOG_DEBUG(Service_NFC, "tag_CFG0=0x{0:x}", ntag_file.CFG0);
@@ -34,11 +35,12 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
 
     // Validate UUID
     constexpr u8 CT = 0x88; // As defined in `ISO / IEC 14443 - 3`
-    if ((CT ^ ntag_file.uuid[0] ^ ntag_file.uuid[1] ^ ntag_file.uuid[2]) != ntag_file.uuid[3]) {
+    if ((CT ^ ntag_file.uuid.uid[0] ^ ntag_file.uuid.uid[1] ^ ntag_file.uuid.uid[2]) !=
+        ntag_file.uuid.uid[3]) {
         return false;
     }
-    if ((ntag_file.uuid[4] ^ ntag_file.uuid[5] ^ ntag_file.uuid[6] ^ ntag_file.uuid[7]) !=
-        ntag_file.uuid[8]) {
+    if ((ntag_file.uuid.uid[4] ^ ntag_file.uuid.uid[5] ^ ntag_file.uuid.uid[6] ^
+         ntag_file.uuid.nintendo_id) != ntag_file.uuid.lock_bytes[0]) {
         return false;
     }
 
@@ -52,11 +54,12 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
     if (amiibo_data.constant_value != 0xA5) {
         return false;
     }
-    if (amiibo_data.model_info.constant_value != 0x02) {
+    if (amiibo_data.model_info.tag_type != TagType::Type2) {
         return false;
     }
-    // dynamic_lock value apparently is not constant
-    // ntag_file.dynamic_lock == 0x0F0001
+    if ((ntag_file.dynamic_lock & 0xFFFFFF) != 0x0F0001U) {
+        return false;
+    }
     if (ntag_file.CFG0 != 0x04000000U) {
         return false;
     }
@@ -69,7 +72,8 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
 NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data) {
     NTAG215File encoded_data{};
 
-    memcpy(encoded_data.uuid2.data(), nfc_data.uuid.data() + 0x8, sizeof(encoded_data.uuid2));
+    encoded_data.uid = nfc_data.uuid.uid;
+    encoded_data.nintendo_id = nfc_data.uuid.nintendo_id;
     encoded_data.static_lock = nfc_data.static_lock;
     encoded_data.compability_container = nfc_data.compability_container;
     encoded_data.hmac_data = nfc_data.user_memory.hmac_data;
@@ -81,10 +85,10 @@ NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data) {
     encoded_data.applicaton_write_counter = nfc_data.user_memory.applicaton_write_counter;
     encoded_data.application_area_id = nfc_data.user_memory.application_area_id;
     encoded_data.unknown = nfc_data.user_memory.unknown;
-    encoded_data.hash = nfc_data.user_memory.hash;
+    encoded_data.unknown2 = nfc_data.user_memory.unknown2;
     encoded_data.application_area = nfc_data.user_memory.application_area;
     encoded_data.hmac_tag = nfc_data.user_memory.hmac_tag;
-    memcpy(encoded_data.uuid.data(), nfc_data.uuid.data(), sizeof(encoded_data.uuid));
+    encoded_data.lock_bytes = nfc_data.uuid.lock_bytes;
     encoded_data.model_info = nfc_data.user_memory.model_info;
     encoded_data.keygen_salt = nfc_data.user_memory.keygen_salt;
     encoded_data.dynamic_lock = nfc_data.dynamic_lock;
@@ -98,8 +102,9 @@ NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data) {
 EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data) {
     EncryptedNTAG215File nfc_data{};
 
-    memcpy(nfc_data.uuid.data() + 0x8, encoded_data.uuid2.data(), sizeof(encoded_data.uuid2));
-    memcpy(nfc_data.uuid.data(), encoded_data.uuid.data(), sizeof(encoded_data.uuid));
+    nfc_data.uuid.uid = encoded_data.uid;
+    nfc_data.uuid.nintendo_id = encoded_data.nintendo_id;
+    nfc_data.uuid.lock_bytes = encoded_data.lock_bytes;
     nfc_data.static_lock = encoded_data.static_lock;
     nfc_data.compability_container = encoded_data.compability_container;
     nfc_data.user_memory.hmac_data = encoded_data.hmac_data;
@@ -111,7 +116,7 @@ EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data) {
     nfc_data.user_memory.applicaton_write_counter = encoded_data.applicaton_write_counter;
     nfc_data.user_memory.application_area_id = encoded_data.application_area_id;
     nfc_data.user_memory.unknown = encoded_data.unknown;
-    nfc_data.user_memory.hash = encoded_data.hash;
+    nfc_data.user_memory.unknown2 = encoded_data.unknown2;
     nfc_data.user_memory.application_area = encoded_data.application_area;
     nfc_data.user_memory.hmac_tag = encoded_data.hmac_tag;
     nfc_data.user_memory.model_info = encoded_data.model_info;
@@ -126,10 +131,10 @@ EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data) {
 
 u32 GetTagPassword(const TagUuid& uuid) {
     // Verifiy that the generated password is correct
-    u32 password = 0xAA ^ (uuid[1] ^ uuid[3]);
-    password &= (0x55 ^ (uuid[2] ^ uuid[4])) << 8;
-    password &= (0xAA ^ (uuid[3] ^ uuid[5])) << 16;
-    password &= (0x55 ^ (uuid[4] ^ uuid[6])) << 24;
+    u32 password = 0xAA ^ (uuid.uid[1] ^ uuid.uid[3]);
+    password &= (0x55 ^ (uuid.uid[2] ^ uuid.uid[4])) << 8;
+    password &= (0xAA ^ (uuid.uid[3] ^ uuid.uid[5])) << 16;
+    password &= (0x55 ^ (uuid.uid[4] ^ uuid.uid[6])) << 24;
     return password;
 }
 
@@ -137,14 +142,12 @@ HashSeed GetSeed(const NTAG215File& data) {
     HashSeed seed{
         .magic = data.write_counter,
         .padding = {},
-        .uuid1 = {},
-        .uuid2 = {},
+        .uid_1 = data.uid,
+        .nintendo_id_1 = data.nintendo_id,
+        .uid_2 = data.uid,
+        .nintendo_id_2 = data.nintendo_id,
         .keygen_salt = data.keygen_salt,
     };
-
-    // Copy the first 8 bytes of uuid
-    memcpy(seed.uuid1.data(), data.uuid.data(), sizeof(seed.uuid1));
-    memcpy(seed.uuid2.data(), data.uuid.data(), sizeof(seed.uuid2));
 
     return seed;
 }
@@ -164,8 +167,10 @@ std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed
     output.insert(output.end(), key.magic_bytes.begin(),
                   key.magic_bytes.begin() + key.magic_length);
 
-    output.insert(output.end(), seed.uuid1.begin(), seed.uuid1.end());
-    output.insert(output.end(), seed.uuid2.begin(), seed.uuid2.end());
+    output.insert(output.end(), seed.uid_1.begin(), seed.uid_1.end());
+    output.emplace_back(seed.nintendo_id_1);
+    output.insert(output.end(), seed.uid_2.begin(), seed.uid_2.end());
+    output.emplace_back(seed.nintendo_id_2);
 
     for (std::size_t i = 0; i < sizeof(seed.keygen_salt); i++) {
         output.emplace_back(static_cast<u8>(seed.keygen_salt[i] ^ key.xor_pad[i]));
@@ -180,24 +185,20 @@ DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
     // Generate internal seed
     const std::vector<u8> internal_key = GenerateInternalKey(key, seed);
 
-    using namespace CryptoPP;
-    byte crypto_key[sizeof(HmacKey)];
-    memcpy(crypto_key, key.hmac_key.data(), sizeof(HmacKey));
-
-    HMAC<SHA256> hmac(crypto_key, sizeof(HmacKey));
-    const byte update1[2] = {0x00, 0x01};
-    hmac.Update(update1, 2);
-
-    byte crypto_seed[sizeof(HmacKey)];
-    memcpy(crypto_seed, internal_key.data(), internal_key.size());
-    hmac.Update(crypto_seed, internal_key.size());
-
-    byte d[HMAC<SHA1>::DIGESTSIZE];
-    hmac.CalculateDigest(d, crypto_seed, internal_key.size());
+    // Initialize context
+    CryptoCtx ctx{};
+    //mbedtls_md_context_t hmac_ctx;
+    //CryptoInit(ctx, hmac_ctx, key.hmac_key, internal_key);
 
     // Generate derived keys
     DerivedKeys derived_keys{};
-    memcpy(&derived_keys, d, sizeof(DerivedKeys));
+    //std::array<DrgbOutput, 2> temp{};
+    //CryptoStep(ctx, hmac_ctx, temp[0]);
+    //CryptoStep(ctx, hmac_ctx, temp[1]);
+    //memcpy(&derived_keys, temp.data(), sizeof(DerivedKeys));
+
+    // Cleanup context
+    //mbedtls_md_free(&hmac_ctx);
 
     return derived_keys;
 }
@@ -219,14 +220,15 @@ void Cipher(const DerivedKeys& keys, const NTAG215File& in_data, NTAG215File& ou
     //                       reinterpret_cast<unsigned char*>(&out_data.settings));
 
     // Copy the rest of the data directly
-    out_data.uuid2 = in_data.uuid2;
+    out_data.uid = in_data.uid;
+    out_data.nintendo_id = in_data.nintendo_id;
+    out_data.lock_bytes = in_data.lock_bytes;
     out_data.static_lock = in_data.static_lock;
     out_data.compability_container = in_data.compability_container;
 
     out_data.constant_value = in_data.constant_value;
     out_data.write_counter = in_data.write_counter;
 
-    out_data.uuid = in_data.uuid;
     out_data.model_info = in_data.model_info;
     out_data.keygen_salt = in_data.keygen_salt;
     out_data.dynamic_lock = in_data.dynamic_lock;
