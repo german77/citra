@@ -8,6 +8,7 @@
 #include <memory>
 #include <boost/serialization/binary_object.hpp>
 #include "common/common_types.h"
+#include "core/hle/service/nfc/amiibo_types.h"
 #include "core/hle/service/service.h"
 
 namespace Core {
@@ -19,12 +20,6 @@ class Event;
 } // namespace Kernel
 
 namespace Service::NFC {
-
-namespace ErrCodes {
-enum {
-    CommandInvalidForState = 512,
-};
-} // namespace ErrCodes
 
 // TODO(FearlessTobi): Add more members to this struct
 struct AmiiboData {
@@ -45,16 +40,6 @@ private:
     friend class boost::serialization::access;
 };
 static_assert(sizeof(AmiiboData) == 0x21C, "AmiiboData is an invalid size");
-
-enum class TagState : u8 {
-    NotInitialized = 0,
-    NotScanning = 1,
-    Scanning = 2,
-    TagInRange = 3,
-    TagOutOfRange = 4,
-    TagDataLoaded = 5,
-    Unknown6 = 6,
-};
 
 enum class CommunicationStatus : u8 {
     AttemptInitialize = 1,

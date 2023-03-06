@@ -334,11 +334,14 @@ add_library(core STATIC
     hle/service/news/news_u.h
     hle/service/nfc/amiibo_crypto.cpp
     hle/service/nfc/amiibo_crypto.h
-    hle/service/nfc/amiibo_types.h
     hle/service/nfc/nfc.cpp
     hle/service/nfc/nfc.h
+    hle/service/nfc/nfc_device.cpp
+    hle/service/nfc/nfc_device.h
     hle/service/nfc/nfc_m.cpp
     hle/service/nfc/nfc_m.h
+    hle/service/nfc/nfc_results.h
+    hle/service/nfc/nfc_types.h
     hle/service/nfc/nfc_u.cpp
     hle/service/nfc/nfc_u.h
     hle/service/nim/nim.cpp

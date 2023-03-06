@@ -7,6 +7,7 @@
 #include <array>
 #include <cryptopp/aes.h>
 #include <cryptopp/hmac.h>
+#include <cryptopp/sha.h>
 
 #include "common/file_util.h"
 #include "common/logging/log.h"
@@ -173,60 +174,30 @@ std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed
     return output;
 }
 
-void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& hmac_key,
-                const std::vector<u8>& seed) {
-
-    // Initialize context
-    ctx.used = false;
-    ctx.counter = 0;
-    ctx.buffer_size = sizeof(ctx.counter) + seed.size();
-    memcpy(ctx.buffer.data() + sizeof(u16), seed.data(), seed.size());
-
-    // Initialize HMAC context
-    // mbedtls_md_init(&hmac_ctx);
-    // mbedtls_md_setup(&hmac_ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
-    // mbedtls_md_hmac_starts(&hmac_ctx, hmac_key.data(), hmac_key.size());
-}
-
-void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& output) {
-    // If used at least once, reinitialize the HMAC
-    if (ctx.used) {
-        // mbedtls_md_hmac_reset(&hmac_ctx);
-    }
-
-    ctx.used = true;
-
-    // Store counter in big endian, and increment it
-    ctx.buffer[0] = static_cast<u8>(ctx.counter >> 8);
-    ctx.buffer[1] = static_cast<u8>(ctx.counter >> 0);
-    ctx.counter++;
-
-    // Do HMAC magic
-    // mbedtls_md_hmac_update(&hmac_ctx, reinterpret_cast<const unsigned char*>(ctx.buffer.data()),
-    //                       ctx.buffer_size);
-    // mbedtls_md_hmac_finish(&hmac_ctx, output.data());
-}
-
 DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
     const auto seed = GetSeed(data);
 
     // Generate internal seed
     const std::vector<u8> internal_key = GenerateInternalKey(key, seed);
 
-    // Initialize context
-    CryptoCtx ctx{};
-    // mbedtls_md_context_t hmac_ctx;
-    // CryptoInit(ctx, hmac_ctx, key.hmac_key, internal_key);
+    using namespace CryptoPP;
+    byte crypto_key[sizeof(HmacKey)];
+    memcpy(crypto_key, key.hmac_key.data(), sizeof(HmacKey));
+
+    HMAC<SHA256> hmac(crypto_key, sizeof(HmacKey));
+    const byte update1[2] = {0x00, 0x01};
+    hmac.Update(update1, 2);
+
+    byte crypto_seed[sizeof(HmacKey)];
+    memcpy(crypto_seed, internal_key.data(), internal_key.size());
+    hmac.Update(crypto_seed, internal_key.size());
+
+    byte d[HMAC<SHA1>::DIGESTSIZE];
+    hmac.CalculateDigest(d, crypto_seed, internal_key.size());
 
     // Generate derived keys
     DerivedKeys derived_keys{};
-    // std::array<DrgbOutput, 2> temp{};
-    // CryptoStep(ctx, hmac_ctx, temp[0]);
-    // CryptoStep(ctx, hmac_ctx, temp[1]);
-    // memcpy(&derived_keys, temp.data(), sizeof(DerivedKeys));
-
-    // Cleanup context
-    // mbedtls_md_free(&hmac_ctx);
+    memcpy(&derived_keys, d, sizeof(DerivedKeys));
 
     return derived_keys;
 }
@@ -266,7 +237,6 @@ void Cipher(const DerivedKeys& keys, const NTAG215File& in_data, NTAG215File& ou
 
 bool LoadKeys(InternalKey& locked_secret, InternalKey& unfixed_info) {
     const auto citra_keys_dir = FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir);
-
     auto keys_file = FileUtil::IOFile(citra_keys_dir + "key_retail.bin", "rb");
 
     if (!keys_file.IsOpen()) {
@@ -284,6 +254,11 @@ bool LoadKeys(InternalKey& locked_secret, InternalKey& unfixed_info) {
     }
 
     return true;
+}
+
+bool IsKeyAvailable() {
+    const auto citra_keys_dir = FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir);
+    return FileUtil::Exists(citra_keys_dir + "key_retail.bin");
 }
 
 bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& tag_data) {

@@ -6,9 +6,7 @@
 #include <array>
 #include <vector>
 
-#include "core/hle/service/nfc/amiibo_types.h"
-
-struct mbedtls_md_context_t;
+#include "core/hle/service/nfc/nfc_types.h"
 
 namespace Service::NFC::AmiiboCrypto {
 // Byte locations in Service::NFP::NTAG215File
@@ -20,7 +18,6 @@ constexpr std::size_t UUID_START = 0x1D4;
 constexpr std::size_t DYNAMIC_LOCK_START = 0x208;
 
 using HmacKey = std::array<u8, 0x10>;
-using DrgbOutput = std::array<u8, 0x20>;
 
 struct HashSeed {
     u16 magic;
@@ -74,13 +71,6 @@ HashSeed GetSeed(const NTAG215File& data);
 // Middle step on the generation of derived keys
 std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed);
 
-// Initializes mbedtls context
-void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& hmac_key,
-                const std::vector<u8>& seed);
-
-// Feeds data to mbedtls context to generate the derived key
-void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& output);
-
 // Generates the derived key from amiibo data
 DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data);
 
@@ -89,6 +79,9 @@ void Cipher(const DerivedKeys& keys, const NTAG215File& in_data, NTAG215File& ou
 
 /// Loads both amiibo keys from key_retail.bin
 bool LoadKeys(InternalKey& locked_secret, InternalKey& unfixed_info);
+
+/// Returns true if key_retail.bin exist
+bool IsKeyAvailable();
 
 /// Decodes encripted amiibo data returns true if output is valid
 bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& tag_data);
