@@ -88,7 +88,7 @@ enum class TagProtocol : u8 {
     TypeF = 1U << 2, // Sony Felica
     Unknown1 = 1U << 3,
     Unknown2 = 1U << 5,
-    All = 0xFFFFFFFFU,
+    All = 0xFFU,
 };
 
 enum class CabinetMode : u8 {
@@ -285,12 +285,6 @@ struct EncryptedNTAG215File {
     u32 CFG0;                        // Defines memory protected by password
     u32 CFG1;                        // Defines number of verification attempts
     NTAG215Password password;        // Password data
-
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int) {
-        ar& boost::serialization::make_binary_object(this, sizeof(AmiiboData));
-    }
-    friend class boost::serialization::access;
 };
 static_assert(sizeof(EncryptedNTAG215File) == 0x21C, "EncryptedNTAG215File is an invalid size");
 static_assert(std::is_trivially_copyable_v<EncryptedNTAG215File>,

@@ -187,18 +187,18 @@ DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
 
     // Initialize context
     CryptoCtx ctx{};
-    //mbedtls_md_context_t hmac_ctx;
-    //CryptoInit(ctx, hmac_ctx, key.hmac_key, internal_key);
+    // mbedtls_md_context_t hmac_ctx;
+    // CryptoInit(ctx, hmac_ctx, key.hmac_key, internal_key);
 
     // Generate derived keys
     DerivedKeys derived_keys{};
-    //std::array<DrgbOutput, 2> temp{};
-    //CryptoStep(ctx, hmac_ctx, temp[0]);
-    //CryptoStep(ctx, hmac_ctx, temp[1]);
-    //memcpy(&derived_keys, temp.data(), sizeof(DerivedKeys));
+    // std::array<DrgbOutput, 2> temp{};
+    // CryptoStep(ctx, hmac_ctx, temp[0]);
+    // CryptoStep(ctx, hmac_ctx, temp[1]);
+    // memcpy(&derived_keys, temp.data(), sizeof(DerivedKeys));
 
     // Cleanup context
-    //mbedtls_md_free(&hmac_ctx);
+    // mbedtls_md_free(&hmac_ctx);
 
     return derived_keys;
 }

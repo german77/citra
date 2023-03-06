@@ -1989,14 +1989,14 @@ void GMainWindow::LoadAmiibo(const QString& filename) {
         return;
     }
 
-    Service::NFC::AmiiboData amiibo_data{};
-    const u64 read_size =
-        nfc_file.read(reinterpret_cast<char*>(&amiibo_data), sizeof(Service::NFC::AmiiboData));
-    if (read_size != sizeof(Service::NFC::AmiiboData)) {
+    Service::NFC::EncryptedNTAG215File amiibo_data{};
+    const u64 read_size = nfc_file.read(reinterpret_cast<char*>(&amiibo_data),
+                                        sizeof(Service::NFC::EncryptedNTAG215File));
+    if (read_size != sizeof(Service::NFC::EncryptedNTAG215File)) {
         QMessageBox::warning(this, tr("Error reading Amiibo data file"),
                              tr("Unable to fully read Amiibo data. Expected to read %1 bytes, but "
                                 "was only able to read %2 bytes.")
-                                 .arg(sizeof(Service::NFC::AmiiboData))
+                                 .arg(sizeof(Service::NFC::EncryptedNTAG215File))
                                  .arg(read_size));
         return;
     }
