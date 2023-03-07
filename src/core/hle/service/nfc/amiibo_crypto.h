@@ -8,8 +8,10 @@
 
 #include "core/hle/service/nfc/nfc_types.h"
 
+struct mbedtls_md_context_t;
+
 namespace Service::NFC::AmiiboCrypto {
-// Byte locations in Service::NFP::NTAG215File
+// Byte locations in Service::NFC::NTAG215File
 constexpr std::size_t HMAC_DATA_START = 0x8;
 constexpr std::size_t SETTINGS_START = 0x2c;
 constexpr std::size_t WRITE_COUNTER_START = 0x29;
@@ -74,6 +76,13 @@ HashSeed GetSeed(const NTAG215File& data);
 // Middle step on the generation of derived keys
 std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed);
 
+// Initializes mbedtls context
+void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& hmac_key,
+                const std::vector<u8>& seed);
+
+// Feeds data to mbedtls context to generate the derived key
+void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& output);
+
 // Generates the derived key from amiibo data
 DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data);
 
@@ -91,5 +100,6 @@ bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& t
 
 /// Encodes plain amiibo data returns true if output is valid
 bool EncodeAmiibo(const NTAG215File& tag_data, EncryptedNTAG215File& encrypted_tag_data);
+
 
 } // namespace Service::NFC::AmiiboCrypto

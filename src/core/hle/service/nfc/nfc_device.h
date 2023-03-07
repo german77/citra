@@ -60,7 +60,7 @@ public:
 private:
     AmiiboName GetAmiiboName(const AmiiboSettings& settings) const;
     void SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo_name);
-    AmiiboDate GetAmiiboDate(s64 posix_time) const;
+    AmiiboDate GetAmiiboDate() const;
 
     std::shared_ptr<Kernel::Event> tag_in_range_event = nullptr;
     std::shared_ptr<Kernel::Event> tag_out_of_range_event = nullptr;
@@ -68,7 +68,6 @@ private:
     bool is_data_moddified{};
     bool is_app_area_open{};
     TagProtocol allowed_protocols{};
-    s64 current_posix_time{};
     MountTarget mount_target{MountTarget::None};
     DeviceState device_state{DeviceState::NotInitialized};
 

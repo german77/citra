@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <array>
+#include <chrono>
 #include <cryptopp/osrng.h>
 
 #include "common/logging/log.h"
@@ -16,9 +17,6 @@ NfcDevice::NfcDevice(Core::System& system) {
         system.Kernel().CreateEvent(Kernel::ResetType::OneShot, "NFC::tag_in_range_event");
     tag_out_of_range_event =
         system.Kernel().CreateEvent(Kernel::ResetType::OneShot, "NFC::tag_out_range_event");
-
-    // auto& standard_steady_clock{system.GetTimeManager().GetStandardSteadyClockCore()};
-    // current_posix_time = standard_steady_clock.GetCurrentTimePoint(system).time_point;
 }
 
 NfcDevice::~NfcDevice() = default;
@@ -126,7 +124,7 @@ ResultCode NfcDevice::Flush() {
 
     auto& settings = tag_data.settings;
 
-    const auto& current_date = GetAmiiboDate(current_posix_time);
+    const auto& current_date = GetAmiiboDate();
     if (settings.write_date.raw_date != current_date.raw_date) {
         settings.write_date = current_date;
         settings.crc_counter++;
@@ -322,8 +320,8 @@ ResultCode NfcDevice::SetNicknameAndOwner(const AmiiboName& amiibo_name) {
 
     auto& settings = tag_data.settings;
 
-    settings.init_date = GetAmiiboDate(current_posix_time);
-    settings.write_date = GetAmiiboDate(current_posix_time);
+    settings.init_date = GetAmiiboDate();
+    settings.write_date = GetAmiiboDate();
     settings.crc_counter++;
     // TODO: Find how to calculate the crc check
     // settings.crc = CalculateCRC(settings);
@@ -625,21 +623,15 @@ void NfcDevice::SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo
     }
 }
 
-AmiiboDate NfcDevice::GetAmiiboDate(s64 posix_time) const {
-    // const auto& time_zone_manager =
-    //     system.GetTimeManager().GetTimeZoneContentManager().GetTimeZoneManager();
-    // Time::TimeZone::CalendarInfo calendar_info{};
+AmiiboDate NfcDevice::GetAmiiboDate() const {
+    const auto now = std::chrono::system_clock::now();
+    time_t time = std::chrono::system_clock::to_time_t(now);
+    tm local_tm = *localtime(&time);
     AmiiboDate amiibo_date{};
 
-    amiibo_date.SetYear(2000);
-    amiibo_date.SetMonth(1);
-    amiibo_date.SetDay(1);
-
-    // if (time_zone_manager.ToCalendarTime({}, posix_time, calendar_info) == RESULT_SUCCESS) {
-    //     amiibo_date.SetYear(calendar_info.time.year);
-    //     amiibo_date.SetMonth(calendar_info.time.month);
-    //     amiibo_date.SetDay(calendar_info.time.day);
-    // }
+    amiibo_date.SetYear(static_cast<u16>(local_tm.tm_year));
+    amiibo_date.SetMonth(local_tm.tm_mon);
+    amiibo_date.SetDay(local_tm.tm_mday);
 
     return amiibo_date;
 }
