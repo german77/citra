@@ -199,6 +199,27 @@ ResultCode NfcDevice::Unmount() {
     return RESULT_SUCCESS;
 }
 
+ResultCode NfcDevice::GetTagInfo2(TagInfo2& tag_info) const {
+    if (device_state != DeviceState::TagFound && device_state != DeviceState::TagMounted) {
+        LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
+        if (device_state == DeviceState::TagRemoved) {
+            return TagRemoved;
+        }
+        return WrongDeviceState;
+    }
+
+    tag_info = {
+        .uuid_length = static_cast<u16>(encrypted_tag_data.uuid.uid.size()),
+        .tag_type = PackedTagType::Type2,
+        .uuid = encrypted_tag_data.uuid.uid,
+        .extra_data = {}, // Used on non amiibo tags
+        .protocol = TagProtocol::None,
+        .extra_data2 = {}, // Used on non amiibo tags
+    };
+
+    return RESULT_SUCCESS;
+}
+
 ResultCode NfcDevice::GetTagInfo(TagInfo& tag_info) const {
     if (device_state != DeviceState::TagFound && device_state != DeviceState::TagMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
@@ -209,10 +230,11 @@ ResultCode NfcDevice::GetTagInfo(TagInfo& tag_info) const {
     }
 
     tag_info = {
-        .uuid_length = static_cast<u16_le>(encrypted_tag_data.uuid.uid.size()),
-        .protocol = TagProtocol::TypeA,
-        .tag_type = TagType::Type2,
+        .uuid_length = static_cast<u16>(encrypted_tag_data.uuid.uid.size()),
+        .protocol = PackedTagProtocol::None,
+        .tag_type = PackedTagType::Type2,
         .uuid = encrypted_tag_data.uuid.uid,
+        .extra_data = {}, // Used on non amiibo tags
     };
 
     return RESULT_SUCCESS;
@@ -239,11 +261,6 @@ ResultCode NfcDevice::GetAmiiboConfig(AmiiboConfig& common_info) const {
     common_info = {
         .last_write_date = settings.write_date.GetWriteDate(),
         .write_counter = tag_data.write_counter,
-        .character_id = model_info_data.character_id,
-        .character_variant = model_info_data.character_variant,
-        .series = model_info_data.series,
-        .model_number = model_info_data.model_number,
-        .amiibo_type = model_info_data.amiibo_type,
         .version = 0,
         .application_area_size = sizeof(ApplicationArea),
     };
@@ -253,7 +270,7 @@ ResultCode NfcDevice::GetAmiiboConfig(AmiiboConfig& common_info) const {
 }
 
 ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
-    if (device_state != DeviceState::TagMounted) {
+    if (device_state != DeviceState::TagFound && device_state != DeviceState::TagMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         if (device_state == DeviceState::TagRemoved) {
             return TagRemoved;
@@ -630,8 +647,8 @@ AmiiboDate NfcDevice::GetAmiiboDate() const {
     AmiiboDate amiibo_date{};
 
     amiibo_date.SetYear(static_cast<u16>(local_tm.tm_year));
-    amiibo_date.SetMonth(local_tm.tm_mon);
-    amiibo_date.SetDay(local_tm.tm_mday);
+    amiibo_date.SetMonth(static_cast<u8>(local_tm.tm_mon));
+    amiibo_date.SetDay(static_cast<u8>(local_tm.tm_mday));
 
     return amiibo_date;
 }

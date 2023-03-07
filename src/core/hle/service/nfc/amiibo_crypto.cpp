@@ -53,7 +53,7 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
     if (amiibo_data.constant_value != 0xA5) {
         return false;
     }
-    if (amiibo_data.model_info.tag_type != TagType::Type2) {
+    if (amiibo_data.model_info.tag_type != PackedTagType::Type2) {
         return false;
     }
     if ((ntag_file.dynamic_lock & 0xFFFFFF) != 0x0F0001U) {
@@ -326,12 +326,12 @@ bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& t
 
     if (tag_data.hmac_data != encrypted_tag_data.user_memory.hmac_data) {
         LOG_ERROR(Service_NFC, "hmac_data doesn't match");
-        //return false;
+        // return false;
     }
 
     if (tag_data.hmac_tag != encrypted_tag_data.user_memory.hmac_tag) {
         LOG_ERROR(Service_NFC, "hmac_tag doesn't match");
-        //return false;
+        // return false;
     }
 
     return true;

@@ -25,7 +25,7 @@ enum class DeviceState : u32 {
     TagFound = 3,
     TagRemoved = 4,
     TagMounted = 5,
-    Unavailable = 6,
+    Unavailable = 6, // Validate this one seems to have other name
 };
 
 enum class ModelType : u32 {
@@ -71,7 +71,7 @@ enum class AmiiboSeries : u8 {
     Diablo,
 };
 
-enum class TagType : u8 {
+enum class TagType : u32 {
     None,
     Type1, // ISO14443A RW 96-2k bytes 106kbit/s
     Type2, // ISO14443A RW/RO 540 bytes 106kbit/s
@@ -80,15 +80,35 @@ enum class TagType : u8 {
     Type5, // ISO15693 RW/RO 540 bytes 106kbit/s
 };
 
-// Verify this enum. It might be completely wrong default protocol is 0x48
-enum class TagProtocol : u8 {
+enum class PackedTagType : u8 {
+    None,
+    Type1, // ISO14443A RW 96-2k bytes 106kbit/s
+    Type2, // ISO14443A RW/RO 540 bytes 106kbit/s
+    Type3, // Sony Felica RW/RO 2k bytes 212kbit/s
+    Type4, // ISO14443A RW/RO 4k-32k bytes 424kbit/s
+    Type5, // ISO15693 RW/RO 540 bytes 106kbit/s
+};
+
+// Verify this enum. It might be completely wrong default protocol is 0x0
+enum class TagProtocol : u32 {
     None,
     TypeA = 1U << 0, // ISO14443A
     TypeB = 1U << 1, // ISO14443B
     TypeF = 1U << 2, // Sony Felica
     Unknown1 = 1U << 3,
     Unknown2 = 1U << 5,
-    All = 0xFFU,
+    All = 0xFFFFFFFFU,
+};
+
+// Verify this enum. It might be completely wrong default protocol is 0x0
+enum class PackedTagProtocol : u8 {
+    None,
+    TypeA = 1U << 0, // ISO14443A
+    TypeB = 1U << 1, // ISO14443B
+    TypeF = 1U << 2, // Sony Felica
+    Unknown1 = 1U << 3,
+    Unknown2 = 1U << 5,
+    All = 0xFF,
 };
 
 enum class CabinetMode : u8 {
@@ -212,7 +232,7 @@ struct AmiiboModelInfo {
     AmiiboType amiibo_type;
     u16_be model_number;
     AmiiboSeries series;
-    TagType tag_type;
+    PackedTagType tag_type;
     INSERT_PADDING_BYTES(0x4); // Unknown
 };
 static_assert(sizeof(AmiiboModelInfo) == 0xC, "AmiiboModelInfo is an invalid size");
@@ -235,7 +255,7 @@ struct EncryptedAmiiboFile {
     HashData keygen_salt;            // Salt
     HashData hmac_data;              // Hash
     HLE::Applets::MiiData owner_mii; // Encrypted Mii data
-    INSERT_PADDING_BYTES(0x4);
+    INSERT_PADDING_BYTES(0x4);       // Encrypted Mii data AES-CCM MAC
     u64_be title_id;                 // Encrypted Game id
     u16_be applicaton_write_counter; // Encrypted Counter
     u32_be application_area_id;      // Encrypted Game id
@@ -254,14 +274,14 @@ struct NTAG215File {
     u16_be write_counter;      // Number of times the amiibo has been written?
     INSERT_PADDING_BYTES(0x1); // Unknown 1
     AmiiboSettings settings;
-    HLE::Applets::MiiData owner_mii; // Encrypted Mii data
-    INSERT_PADDING_BYTES(0x4);
+    HLE::Applets::MiiData owner_mii; // Mii data
+    INSERT_PADDING_BYTES(0x4);       // Mii data AES-CCM MAC
     u64_be title_id;
-    u16_be applicaton_write_counter; // Encrypted Counter
+    u16_be applicaton_write_counter; // Counter
     u32_be application_area_id;
     std::array<u8, 0x2> unknown;
     std::array<u32, 0x8> unknown2;
-    ApplicationArea application_area; // Encrypted Game data
+    ApplicationArea application_area; // Game data
     HashData hmac_tag;                // Hash
     UniqueSerialNumber uid;           // Unique serial number
     u8 nintendo_id;                   // Tag UUID
@@ -291,22 +311,29 @@ static_assert(std::is_trivially_copyable_v<EncryptedNTAG215File>,
               "EncryptedNTAG215File must be trivially copyable.");
 
 struct TagInfo {
-    u16_le uuid_length;
-    TagProtocol protocol;
-    TagType tag_type;
+    u16 uuid_length;
+    PackedTagProtocol protocol;
+    PackedTagType tag_type;
     UniqueSerialNumber uuid;
-    INSERT_PADDING_BYTES(0x20);
+    std::array<u8, 0x21> extra_data;
 };
 static_assert(sizeof(TagInfo) == 0x2C, "TagInfo is an invalid size");
+
+struct TagInfo2 {
+    u16 uuid_length;
+    INSERT_PADDING_BYTES(0x1);
+    PackedTagType tag_type;
+    UniqueSerialNumber uuid;
+    std::array<u8, 0x21> extra_data;
+    TagProtocol protocol;
+    std::array<u8, 0x30> extra_data2;
+};
+static_assert(sizeof(TagInfo2) == 0x60, "TagInfo2 is an invalid size");
 
 struct AmiiboConfig {
     WriteDate last_write_date;
     u16 write_counter;
-    u16 character_id;
-    u8 character_variant;
-    AmiiboSeries series;
-    u16 model_number;
-    AmiiboType amiibo_type;
+    INSERT_PADDING_BYTES(0x7);
     u8 version;
     u16 application_area_size;
     INSERT_PADDING_BYTES(0x30);
@@ -325,7 +352,7 @@ static_assert(sizeof(ModelInfo) == 0x36, "ModelInfo is an invalid size");
 
 struct SettingsInfo {
     HLE::Applets::MiiData mii_data;
-    INSERT_PADDING_BYTES(0x4);
+    INSERT_PADDING_BYTES(0x4); // Mii data AES-CCM MAC
     AmiiboName amiibo_name;
     Settings flags;
     u8 font_region;

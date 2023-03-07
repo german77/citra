@@ -165,6 +165,16 @@ public:
         /**
          * NFC::GetTagInfo service function
          *  Inputs:
+         *      0 : Header code [0x00100000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         *   2-26 : 0x60-byte struct
+         */
+        void GetTagInfo2(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetTagInfo service function
+         *  Inputs:
          *      0 : Header code [0x00110000]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code

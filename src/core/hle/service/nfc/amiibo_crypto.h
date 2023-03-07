@@ -101,5 +101,4 @@ bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& t
 /// Encodes plain amiibo data returns true if output is valid
 bool EncodeAmiibo(const NTAG215File& tag_data, EncryptedNTAG215File& encrypted_tag_data);
 
-
 } // namespace Service::NFC::AmiiboCrypto

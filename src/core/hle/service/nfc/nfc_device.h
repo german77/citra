@@ -34,6 +34,7 @@ public:
     ResultCode Unmount();
     ResultCode Flush();
 
+    ResultCode GetTagInfo2(TagInfo2& tag_info) const;
     ResultCode GetTagInfo(TagInfo& tag_info) const;
     ResultCode GetAmiiboConfig(AmiiboConfig& common_info) const;
     ResultCode GetModelInfo(ModelInfo& model_info) const;
