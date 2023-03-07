@@ -37,7 +37,7 @@ public:
     ResultCode GetTagInfo(TagInfo& tag_info) const;
     ResultCode GetAmiiboConfig(AmiiboConfig& common_info) const;
     ResultCode GetModelInfo(ModelInfo& model_info) const;
-    ResultCode GetRegisterInfo(RegisterInfo& register_info) const;
+    ResultCode GetSettingInfo(SettingsInfo& settings_info) const;
 
     ResultCode SetNicknameAndOwner(const AmiiboName& amiibo_name);
     ResultCode RestoreAmiibo();

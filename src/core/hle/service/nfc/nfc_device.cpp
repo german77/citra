@@ -274,7 +274,7 @@ ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
     return RESULT_SUCCESS;
 }
 
-ResultCode NfcDevice::GetRegisterInfo(RegisterInfo& register_info) const {
+ResultCode NfcDevice::GetSettingInfo(SettingsInfo& settings_info) const {
     if (device_state != DeviceState::TagMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         if (device_state == DeviceState::TagRemoved) {
@@ -295,12 +295,13 @@ ResultCode NfcDevice::GetRegisterInfo(RegisterInfo& register_info) const {
     const auto& settings = tag_data.settings;
 
     // TODO: Validate this data
-    // register_info = {
-    //    .mii_char_info = tag_data.owner_mii,
-    //    .creation_date = settings.init_date.GetWriteDate(),
-    //    .amiibo_name = GetAmiiboName(settings),
-    //    .font_region = {},
-    //};
+    settings_info = {
+        .mii_data = tag_data.owner_mii,
+        .amiibo_name = GetAmiiboName(settings),
+        .flags = settings.settings,
+        .font_region = settings.country_code_id,
+        .creation_date = settings.init_date.GetWriteDate(),
+    };
 
     return RESULT_SUCCESS;
 }
@@ -609,12 +610,8 @@ AmiiboName NfcDevice::GetAmiiboName(const AmiiboSettings& settings) const {
 
     // Convert from big endian to little endian
     for (std::size_t i = 0; i < amiibo_name_length; i++) {
-        settings_amiibo_name[i] = static_cast<u16>(settings.amiibo_name[i]);
+        amiibo_name[i] = static_cast<u16>(settings.amiibo_name[i]);
     }
-
-    // Convert from utf16 to utf8
-    const auto amiibo_name_utf8 = Common::UTF16ToUTF8(settings_amiibo_name.data());
-    memcpy(amiibo_name.data(), amiibo_name_utf8.data(), amiibo_name_utf8.size());
 
     return amiibo_name;
 }
@@ -622,14 +619,9 @@ AmiiboName NfcDevice::GetAmiiboName(const AmiiboSettings& settings) const {
 void NfcDevice::SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo_name) {
     std::array<char16_t, amiibo_name_length> settings_amiibo_name{};
 
-    // Convert from utf8 to utf16
-    const auto amiibo_name_utf16 = Common::UTF8ToUTF16(amiibo_name.data());
-    memcpy(settings_amiibo_name.data(), amiibo_name_utf16.data(),
-           amiibo_name_utf16.size() * sizeof(char16_t));
-
     // Convert from little endian to big endian
     for (std::size_t i = 0; i < amiibo_name_length; i++) {
-        settings.amiibo_name[i] = static_cast<u16_be>(settings_amiibo_name[i]);
+        settings.amiibo_name[i] = static_cast<u16_be>(amiibo_name[i]);
     }
 }
 

@@ -113,7 +113,7 @@ using UniqueSerialNumber = std::array<u8, 7>;
 using LockBytes = std::array<u8, 2>;
 using HashData = std::array<u8, 0x20>;
 using ApplicationArea = std::array<u8, 0xD8>;
-using AmiiboName = std::array<char, (amiibo_name_length * 4) + 1>;
+using AmiiboName = std::array<u16, amiibo_name_length + 1>;
 using DataBlock = std::array<u8, 0x10>;
 using KeyData = std::array<u8, 0x6>;
 
@@ -323,13 +323,15 @@ struct ModelInfo {
 };
 static_assert(sizeof(ModelInfo) == 0x36, "ModelInfo is an invalid size");
 
-struct RegisterInfo {
+struct SettingsInfo {
     HLE::Applets::MiiData mii_data;
-    WriteDate creation_date;
+    INSERT_PADDING_BYTES(0x4);
     AmiiboName amiibo_name;
+    Settings flags;
     u8 font_region;
-    INSERT_PADDING_BYTES(0x7A);
+    WriteDate creation_date;
+    INSERT_PADDING_BYTES(0x2C);
 };
-// static_assert(sizeof(RegisterInfo) == 0x100, "RegisterInfo is an invalid size");
+static_assert(sizeof(SettingsInfo) == 0xA8, "SettingsInfo is an invalid size");
 
 } // namespace Service::NFC
