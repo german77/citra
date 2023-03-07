@@ -80,6 +80,7 @@ NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data) {
     encoded_data.write_counter = nfc_data.user_memory.write_counter;
     encoded_data.settings = nfc_data.user_memory.settings;
     encoded_data.owner_mii = nfc_data.user_memory.owner_mii;
+    encoded_data.owner_mii_aes_ccm = nfc_data.user_memory.owner_mii_aes_ccm;
     encoded_data.title_id = nfc_data.user_memory.title_id;
     encoded_data.applicaton_write_counter = nfc_data.user_memory.applicaton_write_counter;
     encoded_data.application_area_id = nfc_data.user_memory.application_area_id;
@@ -111,6 +112,7 @@ EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data) {
     nfc_data.user_memory.write_counter = encoded_data.write_counter;
     nfc_data.user_memory.settings = encoded_data.settings;
     nfc_data.user_memory.owner_mii = encoded_data.owner_mii;
+    nfc_data.user_memory.owner_mii_aes_ccm = encoded_data.owner_mii_aes_ccm;
     nfc_data.user_memory.title_id = encoded_data.title_id;
     nfc_data.user_memory.applicaton_write_counter = encoded_data.applicaton_write_counter;
     nfc_data.user_memory.application_area_id = encoded_data.application_area_id;
@@ -326,12 +328,12 @@ bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& t
 
     if (tag_data.hmac_data != encrypted_tag_data.user_memory.hmac_data) {
         LOG_ERROR(Service_NFC, "hmac_data doesn't match");
-        // return false;
+        return false;
     }
 
     if (tag_data.hmac_tag != encrypted_tag_data.user_memory.hmac_tag) {
         LOG_ERROR(Service_NFC, "hmac_tag doesn't match");
-        // return false;
+        return false;
     }
 
     return true;

@@ -312,6 +312,7 @@ ResultCode NfcDevice::GetSettingInfo(SettingsInfo& settings_info) const {
     // TODO: Validate this data
     settings_info = {
         .mii_data = tag_data.owner_mii,
+        .mii_data_aes_ccm = tag_data.owner_mii_aes_ccm,
         .amiibo_name = GetAmiiboName(settings),
         .flags = settings.settings,
         .font_region = settings.country_code_id,
@@ -342,6 +343,9 @@ ResultCode NfcDevice::SetNicknameAndOwner(const AmiiboName& amiibo_name) {
     settings.crc_counter++;
     // TODO: Find how to calculate the crc check
     // settings.crc = CalculateCRC(settings);
+
+    // TODO: Calculate mii checksum
+    // tag_data.owner_mii_aes_ccm = ? ? ? ? ;
 
     SetAmiiboName(settings, amiibo_name);
     tag_data.owner_mii = HLE::Applets::MiiSelector::GetStandardMiiResult().selected_mii_data;
