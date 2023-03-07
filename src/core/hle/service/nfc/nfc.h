@@ -121,6 +121,15 @@ public:
         void ResetTagScanState(Kernel::HLERequestContext& ctx);
 
         /**
+         * NFC::UpdateStoredAmiiboData service function
+         *  Inputs:
+         *      0 : Header code [0x00090002]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx);
+
+        /**
          * NFC::GetTagInRangeEvent service function
          *  Inputs:
          *      0 : Header code [0x000B0000]

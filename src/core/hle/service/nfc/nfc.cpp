@@ -61,7 +61,7 @@ void Module::Interface::StopCommunication(Kernel::HLERequestContext& ctx) {
 }
 
 void Module::Interface::StartTagScanning(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x05, 1, 0); // 0x00050040
+    IPC::RequestParser rp(ctx, 0x05, 1, 0);
     u16 in_val = rp.Pop<u16>();
 
     // in_val probably correlates to the tag protocol to be detected
@@ -102,8 +102,18 @@ void Module::Interface::ResetTagScanState(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NFC, "called");
 }
 
+void Module::Interface::UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x09, 0, 0);
+
+    const auto result = nfc->device->Flush();
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
 void Module::Interface::GetTagInfo2(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x11, 0, 0);
+    IPC::RequestParser rp(ctx, 0x10, 0, 0);
 
     TagInfo2 tag_info{};
     const auto result = nfc->device->GetTagInfo2(tag_info);

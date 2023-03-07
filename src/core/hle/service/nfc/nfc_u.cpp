@@ -20,7 +20,7 @@ NFC_U::NFC_U(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {0x00060000, &NFC_U::StopTagScanning, "StopTagScanning"},
         {0x00070000, &NFC_U::LoadAmiiboData, "LoadAmiiboData"},
         {0x00080000, &NFC_U::ResetTagScanState, "ResetTagScanState"},
-        {0x00090002, nullptr, "UpdateStoredAmiiboData"},
+        {0x00090002, &NFC_U::UpdateStoredAmiiboData, "UpdateStoredAmiiboData"},
         {0x000B0000, &NFC_U::GetTagInRangeEvent, "GetTagInRangeEvent"},
         {0x000C0000, &NFC_U::GetTagOutOfRangeEvent, "GetTagOutOfRangeEvent"},
         {0x000D0000, &NFC_U::GetTagState, "GetTagState"},
