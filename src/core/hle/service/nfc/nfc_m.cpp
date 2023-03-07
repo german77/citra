@@ -26,20 +26,20 @@ NFC_M::NFC_M(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {0x000C0000, &NFC_M::GetTagOutOfRangeEvent, "GetTagOutOfRangeEvent"},
         {0x000D0000, &NFC_M::GetTagState, "GetTagState"},
         {0x000F0000, &NFC_M::CommunicationGetStatus, "CommunicationGetStatus"},
-        {0x00100000, nullptr, "GetTagInfo2"},
+        {0x00100000, &NFC_M::GetTagInfo2, "GetTagInfo2"},
         {0x00110000, &NFC_M::GetTagInfo, "GetTagInfo"},
-        {0x00120000, nullptr, "CommunicationGetResult"},
+        {0x00120000, &NFC_M::CommunicationGetResult, "CommunicationGetResult"},
         {0x00130040, &NFC_M::OpenAppData, "OpenAppData"},
         {0x00140384, &NFC_M::InitializeWriteAppData, "InitializeWriteAppData"},
         {0x00150040, &NFC_M::ReadAppData, "ReadAppData"},
         {0x00160242, &NFC_M::WriteAppData, "WriteAppData"},
         {0x00170000, &NFC_M::GetAmiiboSettings, "GetAmiiboSettings"},
         {0x00180000, &NFC_M::GetAmiiboConfig, "GetAmiiboConfig"},
-        {0x00190000, nullptr, "GetAppDataInitStruct"},
+        {0x00190000, &NFC_M::GetAppDataInitStruct, "GetAppDataInitStruct"},
         {0x001A0000, &NFC_M::Unknown0x1A, "Unknown0x1A"},
         {0x001B0000, &NFC_M::GetIdentificationBlock, "GetIdentificationBlock"},
         // nfc:m
-        {0x04040A40, nullptr, "SetAmiiboSettings"}
+        {0x04040A40, &NFC_M::SetAmiiboSettings, "SetAmiiboSettings"}
         // clang-format on
     };
     RegisterHandlers(functions);

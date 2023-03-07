@@ -136,6 +136,15 @@ void Module::Interface::GetTagInfo(Kernel::HLERequestContext& ctx) {
     LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 
+void Module::Interface::CommunicationGetResult(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x12, 0, 0);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.Push(0);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
 void Module::Interface::OpenAppData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x13, 1, 0);
     u32 access_id = rp.Pop<u32>();
@@ -209,6 +218,18 @@ void Module::Interface::GetAmiiboConfig(Kernel::HLERequestContext& ctx) {
     LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 
+void Module::Interface::GetAppDataInitStruct(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x19, 0, 0);
+
+    using InitialStruct = std::array<u8, 0x3c>;
+    InitialStruct empty{};
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(16, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.PushRaw<InitialStruct>(empty);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
 void Module::Interface::GetTagInRangeEvent(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x0B, 0, 0);
 
@@ -271,6 +292,20 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1F, 0);
     rb.Push(result);
     rb.PushRaw<ModelInfo>(model_info);
+    LOG_DEBUG(Service_NFC, "called");
+}
+
+void Module::Interface::SetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+    // Please fix this part it's probably wrong
+    IPC::RequestParser rp(ctx, 0x404, 41, 0);
+
+    // TODO: Pull amiibo settings from request parser
+    AmiiboName name{0x43, 0x69, 0x74, 0x72, 0x61, 0x00}; // Citra
+
+    const auto result = nfc->device->SetNicknameAndOwner(name);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
+    rb.Push(result);
     LOG_DEBUG(Service_NFC, "called");
 }
 
