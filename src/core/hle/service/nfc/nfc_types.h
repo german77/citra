@@ -333,7 +333,11 @@ static_assert(sizeof(TagInfo2) == 0x60, "TagInfo2 is an invalid size");
 struct AmiiboConfig {
     WriteDate last_write_date;
     u16 write_counter;
-    INSERT_PADDING_BYTES(0x7);
+    u16_le character_id;
+    u8 character_variant;
+    AmiiboSeries series;
+    u16_le model_number;
+    AmiiboType amiibo_type;
     u8 version;
     u16 application_area_size;
     INSERT_PADDING_BYTES(0x30);

@@ -21,16 +21,28 @@ NfcDevice::NfcDevice(Core::System& system) {
 
 NfcDevice::~NfcDevice() = default;
 
-bool NfcDevice::LoadAmiibo(const EncryptedNTAG215File& data) {
+bool NfcDevice::LoadAmiibo(std::string amiibo_filename_) {
+    FileUtil::IOFile amiibo_file(amiibo_filename_, "rb");
+
     if (device_state != DeviceState::SearchingForTag) {
         LOG_ERROR(Service_NFC, "Game is not looking for amiibos, current state {}", device_state);
         return false;
     }
 
+    if (!amiibo_file.IsOpen()) {
+        LOG_ERROR(Service_NFC, "Could not open amiibo file \"{}\"", amiibo_filename_);
+        return false;
+    }
+
+    if (!amiibo_file.ReadBytes(&encrypted_tag_data, sizeof(encrypted_tag_data))) {
+        LOG_ERROR(Service_NFC, "Could not read amiibo data from file \"{}\"", amiibo_filename_);
+        encrypted_tag_data = {};
+        return false;
+    }
+
     // TODO: Filter by allowed_protocols here
 
-    encrypted_tag_data = data;
-
+    amiibo_filename = amiibo_filename_;
     device_state = DeviceState::TagFound;
     tag_out_of_range_event->Clear();
     tag_in_range_event->Signal();
@@ -44,6 +56,7 @@ void NfcDevice::CloseAmiibo() {
         Unmount();
     }
 
+    amiibo_filename = "";
     device_state = DeviceState::TagRemoved;
     encrypted_tag_data = {};
     tag_data = {};
@@ -97,8 +110,8 @@ ResultCode NfcDevice::StopDetection() {
 
     if (device_state == DeviceState::TagFound || device_state == DeviceState::TagMounted) {
         CloseAmiibo();
-        return RESULT_SUCCESS;
     }
+
     if (device_state == DeviceState::SearchingForTag || device_state == DeviceState::TagRemoved) {
         device_state = DeviceState::Initialized;
         return RESULT_SUCCESS;
@@ -142,7 +155,27 @@ ResultCode NfcDevice::Flush() {
     std::vector<u8> data(sizeof(encrypted_tag_data));
     memcpy(data.data(), &encrypted_tag_data, sizeof(encrypted_tag_data));
 
-    // TODO: Write data to file here on failure return WriteAmiiboFailed
+    if (amiibo_filename.empty()) {
+        LOG_ERROR(Service_NFC, "Tried to use UpdateStoredAmiiboData on a nonexistant file.");
+        return WriteAmiiboFailed;
+    }
+
+    FileUtil::IOFile amiibo_file(amiibo_filename, "wb");
+    bool write_failed = false;
+
+    if (!amiibo_file.IsOpen()) {
+        LOG_ERROR(Service_NFC, "Could not open amiibo file \"{}\"", amiibo_filename);
+        write_failed = true;
+    }
+    if (!write_failed && !amiibo_file.WriteBytes(data.data(), sizeof(data))) {
+        LOG_ERROR(Service_NFC, "Could not write to amiibo file \"{}\"", amiibo_filename);
+        write_failed = true;
+    }
+    amiibo_file.Close();
+
+    if (write_failed) {
+        return WriteAmiiboFailed;
+    }
 
     is_data_moddified = false;
 
@@ -261,6 +294,11 @@ ResultCode NfcDevice::GetAmiiboConfig(AmiiboConfig& common_info) const {
     common_info = {
         .last_write_date = settings.write_date.GetWriteDate(),
         .write_counter = tag_data.write_counter,
+        .character_id = model_info_data.character_id,
+        .character_variant = model_info_data.character_variant,
+        .series = model_info_data.series,
+        .model_number = model_info_data.model_number,
+        .amiibo_type = model_info_data.amiibo_type,
         .version = 0,
         .application_area_size = sizeof(ApplicationArea),
     };

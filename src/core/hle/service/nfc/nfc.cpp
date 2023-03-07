@@ -278,9 +278,9 @@ std::shared_ptr<Module> Module::Interface::GetModule() const {
     return nfc;
 }
 
-void Module::Interface::LoadAmiibo(const EncryptedNTAG215File& amiibo_data) {
+bool Module::Interface::LoadAmiibo(const std::string& fullpath) {
     std::lock_guard lock(HLE::g_hle_lock);
-    nfc->device->LoadAmiibo(amiibo_data);
+    return nfc->device->LoadAmiibo(fullpath);
 }
 
 void Module::Interface::RemoveAmiibo() {

@@ -22,7 +22,7 @@ public:
     NfcDevice(Core::System& system);
     ~NfcDevice();
 
-    bool LoadAmiibo(const EncryptedNTAG215File& data);
+    bool LoadAmiibo(std::string amiibo_filename_);
     void CloseAmiibo();
 
     void Initialize();
@@ -71,6 +71,8 @@ private:
     TagProtocol allowed_protocols{};
     MountTarget mount_target{MountTarget::None};
     DeviceState device_state{DeviceState::NotInitialized};
+
+    std::string amiibo_filename = "";
 
     NTAG215File tag_data{};
     EncryptedNTAG215File encrypted_tag_data{};

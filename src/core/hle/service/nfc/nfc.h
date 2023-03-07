@@ -40,7 +40,7 @@ public:
 
         std::shared_ptr<Module> GetModule() const;
 
-        void LoadAmiibo(const EncryptedNTAG215File& amiibo_data);
+        bool LoadAmiibo(const std::string& fullpath);
 
         void RemoveAmiibo();
 
