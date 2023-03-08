@@ -127,6 +127,28 @@ void Module::Interface::ResetTagScanState(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 }
 
+void Module::Interface::UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x09, 0, 0);
+
+    const auto result = nfc->device->Flush();
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::GetTagInfo2(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x10, 0, 0);
+
+    TagInfo2 tag_info{};
+    const auto result = nfc->device->GetTagInfo2(tag_info);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(26, 0);
+    rb.Push(result);
+    rb.PushRaw<TagInfo2>(tag_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
 void Module::Interface::GetTagInRangeEvent(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x0B, 0, 0);
 
@@ -163,6 +185,88 @@ void Module::Interface::CommunicationGetStatus(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NFC, "(STUBBED) called");
 }
 
+void Module::Interface::CommunicationGetResult(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x12, 0, 0);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.Push(0);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
+void Module::Interface::OpenAppData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x13, 1, 0);
+    u32 access_id = rp.Pop<u32>();
+
+    const auto result = nfc->device->OpenApplicationArea(access_id);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::InitializeWriteAppData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x14, 18, 2);
+    u32 access_id = rp.Pop<u32>();
+    u32 size = rp.Pop<u32>();
+    std::vector<u8> buffer = rp.PopStaticBuffer();
+
+    const auto result = nfc->device->CreateApplicationArea(access_id, buffer);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+    LOG_DEBUG(Service_NFC, "called");
+}
+
+void Module::Interface::ReadAppData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x15, 0, 0);
+
+    std::vector<u8> buffer(sizeof(ApplicationArea));
+    const auto result = nfc->device->GetApplicationArea(buffer);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
+    rb.Push(result);
+    rb.PushStaticBuffer(buffer, 0);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::WriteAppData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x16, 12, 2);
+    u32 size = rp.Pop<u32>();
+    std::vector<u8> tag_uuid_info = rp.PopStaticBuffer();
+    std::vector<u8> buffer = rp.PopStaticBuffer();
+
+    const auto result = nfc->device->SetApplicationArea(buffer);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::GetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x17, 0, 0);
+
+    SettingsInfo settings_info{};
+    const auto result = nfc->device->GetSettingInfo(settings_info);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(43, 0);
+    rb.Push(result);
+    rb.PushRaw<SettingsInfo>(settings_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::GetAppDataInitStruct(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x19, 0, 0);
+
+    using InitialStruct = std::array<u8, 0x3c>;
+    InitialStruct empty{};
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(16, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.PushRaw<InitialStruct>(empty);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
 void Module::Interface::Unknown0x1A(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x1A, 0, 0);
 
@@ -181,6 +285,20 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
     rb.Push(result);
     rb.PushRaw<ModelInfo>(model_info);
     LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::SetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+    // Please fix this part it's probably wrong
+    IPC::RequestParser rp(ctx, 0x404, 41, 0);
+
+    // TODO: Pull amiibo settings from request parser
+    AmiiboName name{0x43, 0x69, 0x74, 0x72, 0x61, 0x00}; // Citra
+
+    const auto result = nfc->device->SetNicknameAndOwner(name);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
+    rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 
 std::shared_ptr<Module> Module::Interface::GetModule() const {
