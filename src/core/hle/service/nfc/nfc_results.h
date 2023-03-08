@@ -18,32 +18,35 @@ enum {
 };
 } // namespace ErrCodes
 
-constexpr ResultCode DeviceNotFound(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                    ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode InvalidArgument(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                     ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode WrongApplicationAreaSize(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                              ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode WrongDeviceState(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                      ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode NfcDisabled(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                 ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode WriteAmiiboFailed(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                       ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode TagRemoved(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
-                                ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode RegistrationIsNotInitialized(ErrCodes::AmiiboNotSetup, ErrorModule::NFC,
-                                                  ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode ApplicationAreaIsNotInitialized(ErrCodes::AppDataUninitialized,
-                                                     ErrorModule::NFC, ErrorSummary::InvalidState,
-                                                     ErrorLevel::Status);
-constexpr ResultCode CorruptedData(ErrCodes::CorruptedData, ErrorModule::NFC,
-                                   ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode WrongApplicationAreaId(ErrCodes::AppIdMismatch, ErrorModule::NFC,
-                                            ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode ApplicationAreaExist(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+constexpr ResultCode ResultDeviceNotFound(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
                                           ErrorSummary::InvalidState, ErrorLevel::Status);
-constexpr ResultCode NotAnAmiibo(ErrCodes::NotAnAmiibo, ErrorModule::NFC,
-                                 ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultInvalidArgument(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                           ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultWrongApplicationAreaSize(ErrCodes::CommandInvalidForState,
+                                                    ErrorModule::NFC, ErrorSummary::InvalidState,
+                                                    ErrorLevel::Status);
+constexpr ResultCode ResultWrongDeviceState(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                            ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultNfcDisabled(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                       ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultWriteAmiiboFailed(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                             ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultTagRemoved(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                      ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultRegistrationIsNotInitialized(ErrCodes::AmiiboNotSetup, ErrorModule::NFC,
+                                                        ErrorSummary::InvalidState,
+                                                        ErrorLevel::Status);
+constexpr ResultCode ResultApplicationAreaIsNotInitialized(ErrCodes::AppDataUninitialized,
+                                                           ErrorModule::NFC,
+                                                           ErrorSummary::InvalidState,
+                                                           ErrorLevel::Status);
+constexpr ResultCode ResultCorruptedData(ErrCodes::CorruptedData, ErrorModule::NFC,
+                                         ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultWrongApplicationAreaId(ErrCodes::AppIdMismatch, ErrorModule::NFC,
+                                                  ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultApplicationAreaExist(ErrCodes::CommandInvalidForState, ErrorModule::NFC,
+                                                ErrorSummary::InvalidState, ErrorLevel::Status);
+constexpr ResultCode ResultNotAnAmiibo(ErrCodes::NotAnAmiibo, ErrorModule::NFC,
+                                       ErrorSummary::InvalidState, ErrorLevel::Status);
 
 } // namespace Service::NFC

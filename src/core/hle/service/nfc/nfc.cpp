@@ -231,27 +231,27 @@ void Module::Interface::WriteAppData(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 }
 
-void Module::Interface::GetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+void Module::Interface::GetRegisterInfo(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x17, 0, 0);
 
-    SettingsInfo settings_info{};
-    const auto result = nfc->device->GetSettingInfo(settings_info);
+    RegisterInfo settings_info{};
+    const auto result = nfc->device->GetRegisterInfo(settings_info);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(43, 0);
     rb.Push(result);
-    rb.PushRaw<SettingsInfo>(settings_info);
+    rb.PushRaw<RegisterInfo>(settings_info);
     LOG_INFO(Service_NFC, "called");
 }
 
-void Module::Interface::GetAmiiboConfig(Kernel::HLERequestContext& ctx) {
+void Module::Interface::GetCommonInfo(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x18, 0, 0);
 
-    AmiiboConfig amiibo_config{};
-    const auto result = nfc->device->GetAmiiboConfig(amiibo_config);
+    CommonInfo amiibo_config{};
+    const auto result = nfc->device->GetCommonInfo(amiibo_config);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(17, 0);
     rb.Push(result);
-    rb.PushRaw<AmiiboConfig>(amiibo_config);
+    rb.PushRaw<CommonInfo>(amiibo_config);
     LOG_INFO(Service_NFC, "called");
 }
 
@@ -287,38 +287,82 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 }
 
-void Module::Interface::ResetAmiiboSettings(Kernel::HLERequestContext& ctx) {
-    // Please fix this part it's probably wrong
-    IPC::RequestParser rp(ctx, 0x401, 0, 0);
+void Module::Interface::Format(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x401, 3, 2);
 
-    const auto result = nfc->device->DeleteAllData();
+    const auto result = nfc->device->Format();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
     LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 
-void Module::Interface::SetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+void Module::Interface::GetAdminInfo(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x402, 0, 0);
+
+    AdminInfo admin_info{};
+    const auto result = nfc->device->GetAdminInfo(admin_info);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(17, 0);
+    rb.Push(result);
+    rb.PushRaw<AdminInfo>(admin_info);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
+void Module::Interface::GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x403, 0, 0);
+
+    RegisterInfo register_info{};
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(43, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.PushRaw<RegisterInfo>(register_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::SetRegisterInfo(Kernel::HLERequestContext& ctx) {
     // Please fix this part it's probably wrong
     IPC::RequestParser rp(ctx, 0x404, 41, 0);
 
     // TODO: Pull amiibo settings from request parser
     AmiiboName name{0x43, 0x69, 0x74, 0x72, 0x61, 0x00}; // Citra
 
-    const auto result = nfc->device->SetNicknameAndOwner(name);
+    const auto result = nfc->device->SetRegisterInfoPrivate(name);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
     LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 
-void Module::Interface::DeleteAppData(Kernel::HLERequestContext& ctx) {
+void Module::Interface::DeleteRegisterInfo(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x405, 0, 0);
+
+    const auto result = nfc->device->DeleteRegisterInfo();
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
+    rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
+void Module::Interface::DeleteApplicationArea(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x406, 0, 0);
 
     const auto result = nfc->device->DeleteApplicationArea();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
+void Module::Interface::ExistsApplicationArea(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x407, 0, 0);
+
+    bool has_application_area = false;
+    const auto result = nfc->device->ApplicationAreaExist(has_application_area);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x2, 0);
+    rb.Push(result);
+    rb.Push(has_application_area);
     LOG_WARNING(Service_NFC, "(STUBBED) called");
 }
 

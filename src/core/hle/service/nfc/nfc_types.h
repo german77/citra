@@ -11,6 +11,8 @@
 
 namespace Service::NFC {
 static constexpr std::size_t amiibo_name_length = 0xA;
+static constexpr std::size_t application_id_version_offset = 0x1c;
+static constexpr std::size_t counter_limit = 0xffff;
 
 enum class ServiceType : u32 {
     User,
@@ -111,22 +113,12 @@ enum class PackedTagProtocol : u8 {
     All = 0xFF,
 };
 
-enum class CabinetMode : u8 {
-    StartNicknameAndOwnerSettings,
-    StartGameDataEraser,
-    StartRestorer,
-    StartFormatter,
-};
-
-enum class MifareCmd : u8 {
-    AuthA = 0x60,
-    AuthB = 0x61,
-    Read = 0x30,
-    Write = 0xA0,
-    Transfer = 0xB0,
-    Decrement = 0xC0,
-    Increment = 0xC1,
-    Store = 0xC2
+enum class AppAreaVersion : u8 {
+    Nintendo3DS = 0,
+    NintendoWiiU = 1,
+    Nintendo3DSv2 = 2,
+    NintendoSwitch = 3,
+    NotSet = 0xFF,
 };
 
 using UniqueSerialNumber = std::array<u8, 7>;
@@ -141,6 +133,14 @@ struct TagUuid {
     UniqueSerialNumber uid;
     u8 nintendo_id;
     LockBytes lock_bytes;
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& uid;
+        ar& nintendo_id;
+        ar& lock_bytes;
+    }
+    friend class boost::serialization::access;
 };
 static_assert(sizeof(TagUuid) == 10, "TagUuid is an invalid size");
 
@@ -209,6 +209,7 @@ struct Settings {
     union {
         u8 raw{};
 
+        BitField<0, 4, u8> font_region;
         BitField<4, 1, u8> amiibo_initialized;
         BitField<5, 1, u8> appdata_initialized;
     };
@@ -241,26 +242,36 @@ struct NTAG215Password {
     u32 PWD;  // Password to allow write access
     u16 PACK; // Password acknowledge reply
     u16 RFUI; // Reserved for future use
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& PWD;
+        ar& PACK;
+        ar& RFUI;
+    }
+    friend class boost::serialization::access;
 };
 static_assert(sizeof(NTAG215Password) == 0x8, "NTAG215Password is an invalid size");
 
 #pragma pack(1)
 struct EncryptedAmiiboFile {
-    u8 constant_value;               // Must be A5
-    u16_be write_counter;            // Number of times the amiibo has been written?
-    INSERT_PADDING_BYTES(0x1);       // Unknown 1
-    AmiiboSettings settings;         // Encrypted amiibo settings
-    HashData hmac_tag;               // Hash
-    AmiiboModelInfo model_info;      // Encrypted amiibo model info
-    HashData keygen_salt;            // Salt
-    HashData hmac_data;              // Hash
-    HLE::Applets::MiiData owner_mii; // Encrypted Mii data
-    u32 owner_mii_aes_ccm;           // Mii data AES-CCM MAC
-    u64_be title_id;                 // Encrypted Game id
-    u16_be applicaton_write_counter; // Encrypted Counter
-    u32_be application_area_id;      // Encrypted Game id
-    std::array<u8, 0x2> unknown;
-    std::array<u32, 0x8> unknown2;
+    u8 constant_value;                // Must be A5
+    u16_be write_counter;             // Number of times the amiibo has been written?
+    u8 amiibo_version;                // Amiibo file version
+    AmiiboSettings settings;          // Encrypted amiibo settings
+    HashData hmac_tag;                // Hash
+    AmiiboModelInfo model_info;       // Encrypted amiibo model info
+    HashData keygen_salt;             // Salt
+    HashData hmac_data;               // Hash
+    HLE::Applets::MiiData owner_mii;  // Encrypted Mii data
+    u32 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u64_be application_id;            // Encrypted Game id
+    u16_be application_write_counter; // Encrypted Counter
+    u32_be application_area_id;       // Encrypted Game id
+    u8 application_id_byte;
+    u8 unknown;
+    std::array<u32, 0x7> unknown2;
+    u32_be application_area_crc;
     ApplicationArea application_area; // Encrypted Game data
 };
 static_assert(sizeof(EncryptedAmiiboFile) == 0x1F8, "AmiiboFile is an invalid size");
@@ -272,15 +283,17 @@ struct NTAG215File {
     HashData hmac_data;        // Hash
     u8 constant_value;         // Must be A5
     u16_be write_counter;      // Number of times the amiibo has been written?
-    INSERT_PADDING_BYTES(0x1); // Unknown 1
+    u8 amiibo_version;         // Amiibo file version
     AmiiboSettings settings;
-    HLE::Applets::MiiData owner_mii; // Mii data
-    u32 owner_mii_aes_ccm;           // Mii data AES-CCM MAC
-    u64_be title_id;
-    u16_be applicaton_write_counter; // Counter
+    HLE::Applets::MiiData owner_mii;  // Mii data
+    u32 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u64_be application_id;            // Game id
+    u16_be application_write_counter; // Counter
     u32_be application_area_id;
-    std::array<u8, 0x2> unknown;
-    std::array<u32, 0x8> unknown2;
+    u8 application_id_byte;
+    u8 unknown;
+    std::array<u32, 0x7> unknown2;
+    u32_be application_area_crc;
     ApplicationArea application_area; // Game data
     HashData hmac_tag;                // Hash
     UniqueSerialNumber uid;           // Unique serial number
@@ -361,7 +374,7 @@ struct TagInfo2 {
 };
 static_assert(sizeof(TagInfo2) == 0x60, "TagInfo2 is an invalid size");
 
-struct AmiiboConfig {
+struct CommonInfo {
     WriteDate last_write_date;
     u16 write_counter;
     u16_le character_id;
@@ -373,7 +386,7 @@ struct AmiiboConfig {
     u16 application_area_size;
     INSERT_PADDING_BYTES(0x30);
 };
-static_assert(sizeof(AmiiboConfig) == 0x40, "CommonInfo is an invalid size");
+static_assert(sizeof(CommonInfo) == 0x40, "CommonInfo is an invalid size");
 
 struct ModelInfo {
     u16_le character_id;
@@ -385,15 +398,27 @@ struct ModelInfo {
 };
 static_assert(sizeof(ModelInfo) == 0x36, "ModelInfo is an invalid size");
 
-struct SettingsInfo {
+struct RegisterInfo {
     HLE::Applets::MiiData mii_data;
-    u32 mii_data_aes_ccm; // Mii data AES-CCM MAC
+    INSERT_PADDING_BYTES(0x4);
     AmiiboName amiibo_name;
     Settings flags;
     u8 font_region;
     WriteDate creation_date;
     INSERT_PADDING_BYTES(0x2C);
 };
-static_assert(sizeof(SettingsInfo) == 0xA8, "SettingsInfo is an invalid size");
+static_assert(sizeof(RegisterInfo) == 0xA8, "RegisterInfo is an invalid size");
+
+struct AdminInfo {
+    u64 application_id;
+    u32 application_area_id;
+    u16 crc_change_counter;
+    u8 flags;
+    PackedTagType tag_type;
+    AppAreaVersion app_area_version;
+    INSERT_PADDING_BYTES(0x7);
+    INSERT_PADDING_BYTES(0x28);
+};
+static_assert(sizeof(AdminInfo) == 0x40, "AdminInfo is an invalid size");
 
 } // namespace Service::NFC
