@@ -172,7 +172,7 @@ public:
         void CommunicationGetStatus(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::GetTagInfo service function
+         * NFC::GetTagInfo2 service function
          *  Inputs:
          *      0 : Header code [0x00100000]
          *  Outputs:
@@ -300,13 +300,31 @@ public:
         void GetIdentificationBlock(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::GetIdentificationBlock service function
+         * NFC::ResetAmiiboSettings service function
+         *  Inputs:
+         *      0 : Header code [0x040100C2]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void ResetAmiiboSettings(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::SetAmiiboSettings service function
          *  Inputs:
          *      0 : Header code [0x04040A40]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
         void SetAmiiboSettings(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::DeleteAppData service function
+         *  Inputs:
+         *      0 : Header code [0x04060000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void DeleteAppData(Kernel::HLERequestContext& ctx);
 
     protected:
         std::shared_ptr<Module> nfc;

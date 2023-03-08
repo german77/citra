@@ -12,7 +12,7 @@ namespace CryptoPP {
 class SHA256;
 template <class T>
 class HMAC;
-}
+} // namespace CryptoPP
 
 namespace Service::NFC::AmiiboCrypto {
 // Byte locations in Service::NFC::NTAG215File
