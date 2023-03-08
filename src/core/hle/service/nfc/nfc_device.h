@@ -37,13 +37,15 @@ public:
 
     ResultCode GetTagInfo2(TagInfo2& tag_info) const;
     ResultCode GetTagInfo(TagInfo& tag_info) const;
-    ResultCode GetAmiiboConfig(AmiiboConfig& common_info) const;
+    ResultCode GetCommonInfo(CommonInfo& common_info) const;
     ResultCode GetModelInfo(ModelInfo& model_info) const;
-    ResultCode GetSettingInfo(SettingsInfo& settings_info) const;
+    ResultCode GetRegisterInfo(RegisterInfo& register_info) const;
+    ResultCode GetAdminInfo(AdminInfo& admin_info) const;
 
-    ResultCode SetNicknameAndOwner(const AmiiboName& amiibo_name);
+    ResultCode DeleteRegisterInfo();
+    ResultCode SetRegisterInfoPrivate(const AmiiboName& amiibo_name);
     ResultCode RestoreAmiibo();
-    ResultCode DeleteAllData();
+    ResultCode Format();
 
     ResultCode OpenApplicationArea(u32 access_id);
     ResultCode GetApplicationAreaId(u32& application_area_id) const;
@@ -52,6 +54,7 @@ public:
     ResultCode CreateApplicationArea(u32 access_id, std::span<const u8> data);
     ResultCode RecreateApplicationArea(u32 access_id, std::span<const u8> data);
     ResultCode DeleteApplicationArea();
+    ResultCode ApplicationAreaExist(bool& has_application_area);
 
     u32 GetApplicationAreaSize() const;
     DeviceState GetCurrentState() const;
@@ -63,6 +66,8 @@ private:
     AmiiboName GetAmiiboName(const AmiiboSettings& settings) const;
     void SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo_name);
     AmiiboDate GetAmiiboDate() const;
+    void UpdateSettingsCrc();
+    u32 CalculateCrc(std::span<u8> data);
 
     std::shared_ptr<Kernel::Event> tag_in_range_event = nullptr;
     std::shared_ptr<Kernel::Event> tag_out_of_range_event = nullptr;

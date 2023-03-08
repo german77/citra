@@ -33,15 +33,19 @@ NFC_M::NFC_M(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {IPC::MakeHeader(0x0014, 14, 4), &NFC_M::InitializeWriteAppData, "InitializeWriteAppData"},
         {IPC::MakeHeader(0x0015, 1, 0), &NFC_M::ReadAppData, "ReadAppData"},
         {IPC::MakeHeader(0x0016, 9, 2), &NFC_M::WriteAppData, "WriteAppData"},
-        {IPC::MakeHeader(0x0017, 0, 0), &NFC_M::GetAmiiboSettings, "GetAmiiboSettings"},
-        {IPC::MakeHeader(0x0018, 0, 0), &NFC_M::GetAmiiboConfig, "GetAmiiboConfig"},
+        {IPC::MakeHeader(0x0017, 0, 0), &NFC_M::GetRegisterInfo, "GetRegisterInfo"},
+        {IPC::MakeHeader(0x0018, 0, 0), &NFC_M::GetCommonInfo, "GetCommonInfo"},
         {IPC::MakeHeader(0x0019, 0, 0), &NFC_M::GetAppDataInitStruct, "GetAppDataInitStruct"},
         {IPC::MakeHeader(0x001A, 0, 0), &NFC_M::Unknown0x1A, "Unknown0x1A"},
         {IPC::MakeHeader(0x001B, 0, 0), &NFC_M::GetIdentificationBlock, "GetIdentificationBlock"},
         // nfc:m
-        {IPC::MakeHeader(0x0401, 3, 2), &NFC_M::ResetAmiiboSettings, "ResetAmiiboSettings"},
-        {IPC::MakeHeader(0x0404, 41, 0),& NFC_M::SetAmiiboSettings, "SetAmiiboSettings"},
-        {IPC::MakeHeader(0x0406, 0, 0),& NFC_M::DeleteAppData, "DeleteAppData"}
+        {IPC::MakeHeader(0x0401, 3, 2), &NFC_M::Format, "Format"},
+        {IPC::MakeHeader(0x0402, 0, 0),&NFC_M::GetAdminInfo, "GetAdminInfo"},
+        {IPC::MakeHeader(0x0403, 0, 0),&NFC_M::GetEmptyRegisterInfo, "GetEmptyRegisterInfo"},
+        {IPC::MakeHeader(0x0404, 41, 0),&NFC_M::SetRegisterInfo, "SetRegisterInfo"},
+        {IPC::MakeHeader(0x0405, 0, 0),&NFC_M::DeleteRegisterInfo, "DeleteRegisterInfo"},
+        {IPC::MakeHeader(0x0406, 0, 0),& NFC_M::DeleteApplicationArea, "DeleteApplicationArea"},
+        {IPC::MakeHeader(0x0407, 0, 0),& NFC_M::ExistsApplicationArea, "ExistsApplicationArea"}
         // clang-format on
     };
     RegisterHandlers(functions);

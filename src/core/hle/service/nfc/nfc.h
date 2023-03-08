@@ -251,24 +251,24 @@ public:
         void WriteAppData(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::GetAmiiboSettings service function
+         * NFC::GetRegisterInfo service function
          *  Inputs:
          *      0 : Header code [0x00170000]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          *   2-43 : AmiiboSettings struct (see above)
          */
-        void GetAmiiboSettings(Kernel::HLERequestContext& ctx);
+        void GetRegisterInfo(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::GetAmiiboConfig service function
+         * NFC::GetCommonInfo service function
          *  Inputs:
          *      0 : Header code [0x00180000]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          *   2-17 : 0x40-byte config struct
          */
-        void GetAmiiboConfig(Kernel::HLERequestContext& ctx);
+        void GetCommonInfo(Kernel::HLERequestContext& ctx);
 
         /**
          * NFC::GetAppDataInitStruct service function
@@ -300,31 +300,67 @@ public:
         void GetIdentificationBlock(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::ResetAmiiboSettings service function
+         * NFC::Format service function
          *  Inputs:
          *      0 : Header code [0x040100C2]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
-        void ResetAmiiboSettings(Kernel::HLERequestContext& ctx);
+        void Format(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::SetAmiiboSettings service function
+         * NFC::GetAdminInfo service function
+         *  Inputs:
+         *      0 : Header code [0x04020000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void GetAdminInfo(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetEmptyRegisterInfo service function
+         *  Inputs:
+         *      0 : Header code [0x04030000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::SetRegisterInfo service function
          *  Inputs:
          *      0 : Header code [0x04040A40]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
-        void SetAmiiboSettings(Kernel::HLERequestContext& ctx);
+        void SetRegisterInfo(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::DeleteAppData service function
+         * NFC::DeleteRegisterInfo service function
+         *  Inputs:
+         *      0 : Header code [0x04050000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void DeleteRegisterInfo(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::DeleteApplicationArea service function
          *  Inputs:
          *      0 : Header code [0x04060000]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
-        void DeleteAppData(Kernel::HLERequestContext& ctx);
+        void DeleteApplicationArea(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::ExistsApplicationArea service function
+         *  Inputs:
+         *      0 : Header code [0x04070000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void ExistsApplicationArea(Kernel::HLERequestContext& ctx);
 
     protected:
         std::shared_ptr<Module> nfc;
