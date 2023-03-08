@@ -2030,26 +2030,12 @@ void GMainWindow::LoadAmiibo(const QString& filename) {
         return;
     }
 
-    QFile nfc_file{filename};
-    if (!nfc_file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, tr("Error opening Amiibo data file"),
-                             tr("Unable to open Amiibo file \"%1\" for reading.").arg(filename));
+    if (!nfc->LoadAmiibo(filename.toStdString())) {
+        QMessageBox::warning(this, tr("Error opening amiibo data file"),
+                             tr("Unable to open amiibo file \"%1\" for reading.").arg(filename));
         return;
     }
 
-    Service::NFC::AmiiboData amiibo_data{};
-    const u64 read_size =
-        nfc_file.read(reinterpret_cast<char*>(&amiibo_data), sizeof(Service::NFC::AmiiboData));
-    if (read_size != sizeof(Service::NFC::AmiiboData)) {
-        QMessageBox::warning(this, tr("Error reading Amiibo data file"),
-                             tr("Unable to fully read Amiibo data. Expected to read %1 bytes, but "
-                                "was only able to read %2 bytes.")
-                                 .arg(sizeof(Service::NFC::AmiiboData))
-                                 .arg(read_size));
-        return;
-    }
-
-    nfc->LoadAmiibo(amiibo_data);
     ui->action_Remove_Amiibo->setEnabled(true);
 }
 
