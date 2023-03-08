@@ -8,7 +8,11 @@
 
 #include "core/hle/service/nfc/nfc_types.h"
 
-struct mbedtls_md_context_t;
+namespace CryptoPP {
+class SHA256;
+template <class T>
+class HMAC;
+}
 
 namespace Service::NFC::AmiiboCrypto {
 // Byte locations in Service::NFC::NTAG215File

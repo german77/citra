@@ -9,7 +9,6 @@
 #include <cryptopp/hmac.h>
 #include <cryptopp/sha.h>
 #include <mbedtls/aes.h>
-#include <mbedtls/hmac_drbg.h>
 
 #include "common/file_util.h"
 #include "common/logging/log.h"
@@ -353,27 +352,22 @@ bool EncodeAmiibo(const NTAG215File& tag_data, EncryptedNTAG215File& encrypted_t
     // Generate tag HMAC
     constexpr std::size_t input_length = DYNAMIC_LOCK_START - UUID_START;
     constexpr std::size_t input_length2 = HMAC_TAG_START - WRITE_COUNTER_START;
-    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), tag_keys.hmac_key.data(),
-                    sizeof(HmacKey), reinterpret_cast<const unsigned char*>(&tag_data.uid),
-                    input_length, reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag));
-
-    // Init mbedtls HMAC context
-    mbedtls_md_context_t ctx;
-    mbedtls_md_init(&ctx);
-    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
+    CryptoPP::HMAC<CryptoPP::SHA256> tag_hmac(tag_keys.hmac_key.data(), sizeof(HmacKey));
+    tag_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag),
+                             reinterpret_cast<const unsigned char*>(&tag_data.uid), input_length);
 
     // Generate data HMAC
-    mbedtls_md_hmac_starts(&ctx, data_keys.hmac_key.data(), sizeof(HmacKey));
-    mbedtls_md_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(&tag_data.write_counter),
-                           input_length2); // Data
-    mbedtls_md_hmac_update(&ctx, reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag),
-                           sizeof(HashData)); // Tag HMAC
-    mbedtls_md_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(&tag_data.uid),
-                           input_length);
-    mbedtls_md_hmac_finish(&ctx, reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data));
-
-    // HMAC cleanup
-    mbedtls_md_free(&ctx);
+    CryptoPP::HMAC<CryptoPP::SHA256> data_hmac(data_keys.hmac_key.data(), sizeof(HmacKey));
+    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
+                              reinterpret_cast<const unsigned char*>(&tag_data.write_counter),
+                              input_length2);
+    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
+                              reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag),
+                              sizeof(HashData));
+    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
+                              reinterpret_cast<const unsigned char*>(&tag_data.uid),
+                              input_length);
+    // TODO: VERIFY THIS OUTPUT ^^
 
     // Encrypt
     Cipher(data_keys, tag_data, encoded_tag_data);
