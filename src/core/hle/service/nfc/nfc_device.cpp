@@ -612,9 +612,14 @@ ResultCode NfcDevice::RecreateApplicationArea(u32 access_id, std::span<const u8>
     rng.GenerateBlock(buffer.data(), data_size);
     memcpy(tag_data.application_area.data() + data.size(), buffer.data(), data_size);
 
-    // TODO: Investigate why the title id needs to be moddified
-    // tag_data.title_id = system.GetApplicationProcessProgramID();
-    // tag_data.title_id = tag_data.title_id | 0x30000000ULL;
+    u64 title_id{};
+    if (Core::System::GetInstance().GetAppLoader().ReadProgramId(title_id) ==
+        Loader::ResultStatus::Success) {
+        // TODO: Investigate why the title id needs to be moddified
+        tag_data.title_id = title_id;
+        tag_data.title_id = tag_data.title_id | 0x30000000ULL;
+    }
+
     tag_data.settings.settings.appdata_initialized.Assign(1);
     tag_data.application_area_id = access_id;
     tag_data.applicaton_write_counter++;

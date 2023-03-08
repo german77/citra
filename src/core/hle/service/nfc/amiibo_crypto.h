@@ -77,11 +77,11 @@ HashSeed GetSeed(const NTAG215File& data);
 std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed);
 
 // Initializes mbedtls context
-void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& hmac_key,
+void CryptoInit(CryptoCtx& ctx, CryptoPP::HMAC<CryptoPP::SHA256>& hmac_ctx, const HmacKey& hmac_key,
                 const std::vector<u8>& seed);
 
 // Feeds data to mbedtls context to generate the derived key
-void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& output);
+void CryptoStep(CryptoCtx& ctx, CryptoPP::HMAC<CryptoPP::SHA256>& hmac_ctx, DrgbOutput& output);
 
 // Generates the derived key from amiibo data
 DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data);

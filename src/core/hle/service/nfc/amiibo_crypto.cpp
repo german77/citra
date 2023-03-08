@@ -5,6 +5,9 @@
 // SPDX-License-Identifier: MIT
 
 #include <array>
+#include <cryptopp/aes.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/sha.h>
 #include <mbedtls/aes.h>
 #include <mbedtls/hmac_drbg.h>
 
@@ -180,7 +183,7 @@ std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed
     return output;
 }
 
-void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& hmac_key,
+void CryptoInit(CryptoCtx& ctx, CryptoPP::HMAC<CryptoPP::SHA256>& hmac_ctx, const HmacKey& hmac_key,
                 const std::vector<u8>& seed) {
     // Initialize context
     ctx.used = false;
@@ -189,15 +192,13 @@ void CryptoInit(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, const HmacKey& h
     memcpy(ctx.buffer.data() + sizeof(u16), seed.data(), seed.size());
 
     // Initialize HMAC context
-    mbedtls_md_init(&hmac_ctx);
-    mbedtls_md_setup(&hmac_ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
-    mbedtls_md_hmac_starts(&hmac_ctx, hmac_key.data(), hmac_key.size());
+    hmac_ctx.SetKey(hmac_key.data(), hmac_key.size());
 }
 
-void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& output) {
+void CryptoStep(CryptoCtx& ctx, CryptoPP::HMAC<CryptoPP::SHA256>& hmac_ctx, DrgbOutput& output) {
     // If used at least once, reinitialize the HMAC
     if (ctx.used) {
-        mbedtls_md_hmac_reset(&hmac_ctx);
+        hmac_ctx.Restart();
     }
 
     ctx.used = true;
@@ -208,9 +209,8 @@ void CryptoStep(CryptoCtx& ctx, mbedtls_md_context_t& hmac_ctx, DrgbOutput& outp
     ctx.counter++;
 
     // Do HMAC magic
-    mbedtls_md_hmac_update(&hmac_ctx, reinterpret_cast<const unsigned char*>(ctx.buffer.data()),
-                           ctx.buffer_size);
-    mbedtls_md_hmac_finish(&hmac_ctx, output.data());
+    hmac_ctx.CalculateDigest(
+        output.data(), reinterpret_cast<const unsigned char*>(ctx.buffer.data()), ctx.buffer_size);
 }
 
 DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
@@ -221,7 +221,7 @@ DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
 
     // Initialize context
     CryptoCtx ctx{};
-    mbedtls_md_context_t hmac_ctx;
+    CryptoPP::HMAC<CryptoPP::SHA256> hmac_ctx;
     CryptoInit(ctx, hmac_ctx, key.hmac_key, internal_key);
 
     // Generate derived keys
@@ -230,9 +230,6 @@ DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
     CryptoStep(ctx, hmac_ctx, temp[0]);
     CryptoStep(ctx, hmac_ctx, temp[1]);
     memcpy(&derived_keys, temp.data(), sizeof(DerivedKeys));
-
-    // Cleanup context
-    mbedtls_md_free(&hmac_ctx);
 
     return derived_keys;
 }
@@ -315,16 +312,16 @@ bool DecodeAmiibo(const EncryptedNTAG215File& encrypted_tag_data, NTAG215File& t
 
     // Regenerate tag HMAC. Note: order matters, data HMAC depends on tag HMAC!
     constexpr std::size_t input_length = DYNAMIC_LOCK_START - UUID_START;
-    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), tag_keys.hmac_key.data(),
-                    sizeof(HmacKey), reinterpret_cast<const unsigned char*>(&tag_data.uid),
-                    input_length, reinterpret_cast<unsigned char*>(&tag_data.hmac_tag));
+    CryptoPP::HMAC<CryptoPP::SHA256> tag_hmac(tag_keys.hmac_key.data(), sizeof(HmacKey));
+    tag_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&tag_data.hmac_tag),
+                             reinterpret_cast<const unsigned char*>(&tag_data.uid), input_length);
 
     // Regenerate data HMAC
     constexpr std::size_t input_length2 = DYNAMIC_LOCK_START - WRITE_COUNTER_START;
-    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), data_keys.hmac_key.data(),
-                    sizeof(HmacKey),
-                    reinterpret_cast<const unsigned char*>(&tag_data.write_counter), input_length2,
-                    reinterpret_cast<unsigned char*>(&tag_data.hmac_data));
+    CryptoPP::HMAC<CryptoPP::SHA256> data_hmac(data_keys.hmac_key.data(), sizeof(HmacKey));
+    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&tag_data.hmac_data),
+                              reinterpret_cast<const unsigned char*>(&tag_data.write_counter),
+                              input_length2);
 
     if (tag_data.hmac_data != encrypted_tag_data.user_memory.hmac_data) {
         LOG_ERROR(Service_NFC, "hmac_data doesn't match");
