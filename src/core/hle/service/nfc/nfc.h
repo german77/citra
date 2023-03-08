@@ -121,6 +121,15 @@ public:
         void ResetTagScanState(Kernel::HLERequestContext& ctx);
 
         /**
+         * NFC::UpdateStoredAmiiboData service function
+         *  Inputs:
+         *      0 : Header code [0x00090002]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx);
+
+        /**
          * NFC::GetTagInRangeEvent service function
          *  Inputs:
          *      0 : Header code [0x000B0000]
@@ -165,12 +174,91 @@ public:
         /**
          * NFC::GetTagInfo service function
          *  Inputs:
+         *      0 : Header code [0x00100000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         *   2-26 : 0x60-byte struct
+         */
+        void GetTagInfo2(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetTagInfo service function
+         *  Inputs:
          *      0 : Header code [0x00110000]
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          *   2-12 : 0x2C-byte struct
          */
         void GetTagInfo(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetTagInfo service function
+         *  Inputs:
+         *      0 : Header code [0x00120000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         *      2 : Output NFC-adapter result-code
+         */
+        void CommunicationGetResult(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::OpenAppData service function
+         *  Inputs:
+         *      0 : Header code [0x00130040]
+         *      1 : (u32) App ID
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void OpenAppData(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::InitializeWriteAppData service function
+         *  Inputs:
+         *      0 : Header code [0x00140384]
+         *      1 : (u32) App ID
+         *      2 : Size
+         *   3-14 : 0x30-byte zeroed-out struct
+         *     15 : 0x20, PID translate-header for kernel
+         *     16 : PID written by kernel
+         *     17 : (Size << 14) | 2
+         *     18 : Pointer to input buffer
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void InitializeWriteAppData(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::ReadAppData service function
+         *  Inputs:
+         *      0 : Header code [0x00150040]
+         *      1 : Size (unused? Hard-coded to be 0xD8)
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void ReadAppData(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::WriteAppData service function
+         *  Inputs:
+         *      0 : Header code [0x00160242]
+         *      1 : Size
+         *    2-9 : AmiiboWriteRequest struct (see above)
+         *     10 : (Size << 14) | 2
+         *     11 : Pointer to input appdata buffer
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void WriteAppData(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetAmiiboSettings service function
+         *  Inputs:
+         *      0 : Header code [0x00170000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         *   2-43 : AmiiboSettings struct (see above)
+         */
+        void GetAmiiboSettings(Kernel::HLERequestContext& ctx);
 
         /**
          * NFC::GetAmiiboConfig service function
@@ -181,6 +269,16 @@ public:
          *   2-17 : 0x40-byte config struct
          */
         void GetAmiiboConfig(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetAppDataInitStruct service function
+         *  Inputs:
+         *      0 : Header code [0x00180000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         *   2-16 : 0x3C-byte config struct
+         */
+        void GetAppDataInitStruct(Kernel::HLERequestContext& ctx);
 
         /**
          * NFC::Unknown0x1A service function
@@ -200,6 +298,15 @@ public:
          *   2-31 : 0x36-byte struct
          */
         void GetIdentificationBlock(Kernel::HLERequestContext& ctx);
+
+        /**
+         * NFC::GetIdentificationBlock service function
+         *  Inputs:
+         *      0 : Header code [0x04040A40]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void SetAmiiboSettings(Kernel::HLERequestContext& ctx);
 
     protected:
         std::shared_ptr<Module> nfc;
