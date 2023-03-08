@@ -18,8 +18,8 @@ namespace Service::NFC {
 
 template <class Archive>
 void Module::serialize(Archive& ar, const unsigned int) {
-    // TODO: Add nfc_device
     ar& nfc_status;
+    ar& device;
 }
 SERIALIZE_IMPL(Module)
 
@@ -287,6 +287,17 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 }
 
+void Module::Interface::ResetAmiiboSettings(Kernel::HLERequestContext& ctx) {
+    // Please fix this part it's probably wrong
+    IPC::RequestParser rp(ctx, 0x401, 0, 0);
+
+    const auto result = nfc->device->DeleteAllData();
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
+    rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
 void Module::Interface::SetAmiiboSettings(Kernel::HLERequestContext& ctx) {
     // Please fix this part it's probably wrong
     IPC::RequestParser rp(ctx, 0x404, 41, 0);
@@ -295,6 +306,16 @@ void Module::Interface::SetAmiiboSettings(Kernel::HLERequestContext& ctx) {
     AmiiboName name{0x43, 0x69, 0x74, 0x72, 0x61, 0x00}; // Citra
 
     const auto result = nfc->device->SetNicknameAndOwner(name);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
+    rb.Push(result);
+    LOG_WARNING(Service_NFC, "(STUBBED) called");
+}
+
+void Module::Interface::DeleteAppData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x406, 0, 0);
+
+    const auto result = nfc->device->DeleteApplicationArea();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);

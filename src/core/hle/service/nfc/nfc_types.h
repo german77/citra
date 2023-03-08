@@ -310,6 +310,37 @@ static_assert(sizeof(EncryptedNTAG215File) == 0x21C, "EncryptedNTAG215File is an
 static_assert(std::is_trivially_copyable_v<EncryptedNTAG215File>,
               "EncryptedNTAG215File must be trivially copyable.");
 
+struct SerializableAmiiboFile {
+    union {
+        std::array<u8, 0x21C> raw;
+        NTAG215File file;
+    };
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& raw;
+    }
+    friend class boost::serialization::access;
+};
+static_assert(sizeof(SerializableAmiiboFile) == 0x21C, "SerializableAmiiboFile is an invalid size");
+static_assert(std::is_trivially_copyable_v<SerializableAmiiboFile>,
+              "SerializableAmiiboFile must be trivially copyable.");
+
+struct SerializableEncryptedAmiiboFile {
+    union {
+        std::array<u8, 0x21C> raw;
+        EncryptedNTAG215File file;
+    };
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& raw;
+    }
+    friend class boost::serialization::access;
+};
+static_assert(sizeof(SerializableEncryptedAmiiboFile) == 0x21C,
+              "SerializableEncryptedAmiiboFile is an invalid size");
+static_assert(std::is_trivially_copyable_v<SerializableEncryptedAmiiboFile>,
+              "SerializableEncryptedAmiiboFile must be trivially copyable.");
+
 struct TagInfo {
     u16 uuid_length;
     PackedTagProtocol protocol;

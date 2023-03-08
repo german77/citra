@@ -7,6 +7,7 @@
 #include <array>
 #include <cryptopp/aes.h>
 #include <cryptopp/hmac.h>
+#include <cryptopp/modes.h>
 #include <cryptopp/sha.h>
 
 #include "common/file_util.h"
@@ -233,20 +234,13 @@ DerivedKeys GenerateKey(const InternalKey& key, const NTAG215File& data) {
 }
 
 void Cipher(const DerivedKeys& keys, const NTAG215File& in_data, NTAG215File& out_data) {
-    // mbedtls_aes_context aes;
-    std::size_t nc_off = 0;
-    std::array<u8, sizeof(keys.aes_iv)> nonce_counter{};
-    std::array<u8, sizeof(keys.aes_iv)> stream_block{};
+    CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption d2;
+    d2.SetKeyWithIV(keys.aes_key.data(), keys.aes_key.size(), keys.aes_iv.data(),
+                    keys.aes_iv.size());
 
-    // const auto aes_key_size = static_cast<u32>(keys.aes_key.size() * 8);
-    // mbedtls_aes_setkey_enc(&aes, keys.aes_key.data(), aes_key_size);
-    // memcpy(nonce_counter.data(), keys.aes_iv.data(), sizeof(keys.aes_iv));
-
-    // constexpr std::size_t encrypted_data_size = HMAC_TAG_START - SETTINGS_START;
-    // mbedtls_aes_crypt_ctr(&aes, encrypted_data_size, &nc_off, nonce_counter.data(),
-    //                       stream_block.data(),
-    //                       reinterpret_cast<const unsigned char*>(&in_data.settings),
-    //                       reinterpret_cast<unsigned char*>(&out_data.settings));
+    constexpr std::size_t encrypted_data_size = HMAC_TAG_START - SETTINGS_START;
+    d2.ProcessData(reinterpret_cast<unsigned char*>(&out_data.settings),
+                   reinterpret_cast<const unsigned char*>(&in_data.settings), encrypted_data_size);
 
     // Copy the rest of the data directly
     out_data.uid = in_data.uid;
@@ -365,7 +359,6 @@ bool EncodeAmiibo(const NTAG215File& tag_data, EncryptedNTAG215File& encrypted_t
                               sizeof(HashData));
     data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
                               reinterpret_cast<const unsigned char*>(&tag_data.uid), input_length);
-    // TODO: VERIFY THIS OUTPUT ^^
 
     // Encrypt
     Cipher(data_keys, tag_data, encoded_tag_data);

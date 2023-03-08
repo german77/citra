@@ -11,7 +11,24 @@
 #include "core/hle/service/nfc/amiibo_crypto.h"
 #include "core/hle/service/nfc/nfc_device.h"
 
+SERVICE_CONSTRUCT_IMPL(Service::NFC::NfcDevice)
+
 namespace Service::NFC {
+template <class Archive>
+void NfcDevice::serialize(Archive& ar, const unsigned int) {
+    ar& tag_in_range_event;
+    ar& tag_out_of_range_event;
+    ar& is_data_moddified;
+    ar& is_app_area_open;
+    ar& allowed_protocols;
+    ar& mount_target;
+    ar& device_state;
+    ar& amiibo_filename;
+    ar& tag;
+    ar& encrypted_tag;
+}
+SERIALIZE_IMPL(NfcDevice)
+
 NfcDevice::NfcDevice(Core::System& system) {
     tag_in_range_event =
         system.Kernel().CreateEvent(Kernel::ResetType::OneShot, "NFC::tag_in_range_event");
@@ -34,9 +51,9 @@ bool NfcDevice::LoadAmiibo(std::string amiibo_filename_) {
         return false;
     }
 
-    if (!amiibo_file.ReadBytes(&encrypted_tag_data, sizeof(encrypted_tag_data))) {
+    if (!amiibo_file.ReadBytes(&encrypted_tag.file, sizeof(encrypted_tag.file))) {
         LOG_ERROR(Service_NFC, "Could not read amiibo data from file \"{}\"", amiibo_filename_);
-        encrypted_tag_data = {};
+        encrypted_tag.file = {};
         return false;
     }
 
@@ -58,8 +75,8 @@ void NfcDevice::CloseAmiibo() {
 
     amiibo_filename = "";
     device_state = DeviceState::TagRemoved;
-    encrypted_tag_data = {};
-    tag_data = {};
+    encrypted_tag.file = {};
+    tag.file = {};
     tag_in_range_event->Clear();
     tag_out_of_range_event->Signal();
 }
@@ -74,8 +91,8 @@ std::shared_ptr<Kernel::Event> NfcDevice::GetDeactivateEvent() const {
 
 void NfcDevice::Initialize() {
     device_state = DeviceState::Initialized;
-    encrypted_tag_data = {};
-    tag_data = {};
+    encrypted_tag.file = {};
+    tag.file = {};
 }
 
 void NfcDevice::Finalize() {
@@ -135,7 +152,7 @@ ResultCode NfcDevice::Flush() {
         return WrongDeviceState;
     }
 
-    auto& settings = tag_data.settings;
+    auto& settings = tag.file.settings;
 
     const auto& current_date = GetAmiiboDate();
     if (settings.write_date.raw_date != current_date.raw_date) {
@@ -145,15 +162,15 @@ ResultCode NfcDevice::Flush() {
         // settings.crc = CalculateCRC(settings);
     }
 
-    tag_data.write_counter++;
+    tag.file.write_counter++;
 
-    if (!AmiiboCrypto::EncodeAmiibo(tag_data, encrypted_tag_data)) {
+    if (!AmiiboCrypto::EncodeAmiibo(tag.file, encrypted_tag.file)) {
         LOG_ERROR(Service_NFC, "Failed to encode data");
         return WriteAmiiboFailed;
     }
 
-    std::vector<u8> data(sizeof(encrypted_tag_data));
-    memcpy(data.data(), &encrypted_tag_data, sizeof(encrypted_tag_data));
+    std::vector<u8> data(sizeof(encrypted_tag.file));
+    memcpy(data.data(), &encrypted_tag.file, sizeof(encrypted_tag.file));
 
     if (amiibo_filename.empty()) {
         LOG_ERROR(Service_NFC, "Tried to use UpdateStoredAmiiboData on a nonexistant file.");
@@ -188,7 +205,7 @@ ResultCode NfcDevice::Mount(MountTarget mount_target_) {
         return WrongDeviceState;
     }
 
-    if (!AmiiboCrypto::IsAmiiboValid(encrypted_tag_data)) {
+    if (!AmiiboCrypto::IsAmiiboValid(encrypted_tag.file)) {
         LOG_ERROR(Service_NFC, "Not an amiibo");
         return NotAnAmiibo;
     }
@@ -201,7 +218,7 @@ ResultCode NfcDevice::Mount(MountTarget mount_target_) {
         return RESULT_SUCCESS;
     }
 
-    if (!AmiiboCrypto::DecodeAmiibo(encrypted_tag_data, tag_data)) {
+    if (!AmiiboCrypto::DecodeAmiibo(encrypted_tag.file, tag.file)) {
         LOG_ERROR(Service_NFC, "Can't decode amiibo {}", device_state);
         return CorruptedData;
     }
@@ -242,9 +259,9 @@ ResultCode NfcDevice::GetTagInfo2(TagInfo2& tag_info) const {
     }
 
     tag_info = {
-        .uuid_length = static_cast<u16>(encrypted_tag_data.uuid.uid.size()),
+        .uuid_length = static_cast<u16>(encrypted_tag.file.uuid.uid.size()),
         .tag_type = PackedTagType::Type2,
-        .uuid = encrypted_tag_data.uuid.uid,
+        .uuid = encrypted_tag.file.uuid.uid,
         .extra_data = {}, // Used on non amiibo tags
         .protocol = TagProtocol::None,
         .extra_data2 = {}, // Used on non amiibo tags
@@ -263,10 +280,10 @@ ResultCode NfcDevice::GetTagInfo(TagInfo& tag_info) const {
     }
 
     tag_info = {
-        .uuid_length = static_cast<u16>(encrypted_tag_data.uuid.uid.size()),
+        .uuid_length = static_cast<u16>(encrypted_tag.file.uuid.uid.size()),
         .protocol = PackedTagProtocol::None,
         .tag_type = PackedTagType::Type2,
-        .uuid = encrypted_tag_data.uuid.uid,
+        .uuid = encrypted_tag.file.uuid.uid,
         .extra_data = {}, // Used on non amiibo tags
     };
 
@@ -287,19 +304,19 @@ ResultCode NfcDevice::GetAmiiboConfig(AmiiboConfig& common_info) const {
         return WrongDeviceState;
     }
 
-    const auto& settings = tag_data.settings;
-    const auto& model_info_data = tag_data.model_info;
+    const auto& settings = tag.file.settings;
+    const auto& model_info_data = tag.file.model_info;
 
     // TODO: Validate this data
     common_info = {
         .last_write_date = settings.write_date.GetWriteDate(),
-        .write_counter = tag_data.write_counter,
+        .write_counter = tag.file.write_counter,
         .character_id = model_info_data.character_id,
         .character_variant = model_info_data.character_variant,
         .series = model_info_data.series,
         .model_number = model_info_data.model_number,
         .amiibo_type = model_info_data.amiibo_type,
-        .version = 0,
+        .version = tag.file.amiibo_version,
         .application_area_size = sizeof(ApplicationArea),
     };
 
@@ -316,7 +333,7 @@ ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
         return WrongDeviceState;
     }
 
-    const auto& model_info_data = encrypted_tag_data.user_memory.model_info;
+    const auto& model_info_data = encrypted_tag.file.user_memory.model_info;
     model_info = {
         .character_id = model_info_data.character_id,
         .character_variant = model_info_data.character_variant,
@@ -341,16 +358,15 @@ ResultCode NfcDevice::GetSettingInfo(SettingsInfo& settings_info) const {
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.amiibo_initialized == 0) {
-        return RegistrationIsNotInitialized;
+    if (tag.file.settings.settings.amiibo_initialized == 0) {
+        return ResultRegistrationIsNotInitialized;
     }
 
-    const auto& settings = tag_data.settings;
+    const auto& settings = tag.file.settings;
 
     // TODO: Validate this data
-    settings_info = {
-        .mii_data = tag_data.owner_mii,
-        .mii_data_aes_ccm = tag_data.owner_mii_aes_ccm,
+    register_info = {
+        .mii_data = tag.file.owner_mii,
         .amiibo_name = GetAmiiboName(settings),
         .flags = settings.settings,
         .font_region = settings.country_code_id,
@@ -358,6 +374,75 @@ ResultCode NfcDevice::GetSettingInfo(SettingsInfo& settings_info) const {
     };
 
     return RESULT_SUCCESS;
+}
+
+ResultCode NfcDevice::GetAdminInfo(AdminInfo& admin_info) const {
+    if (device_state != DeviceState::TagMounted) {
+        LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
+        if (device_state == DeviceState::TagRemoved) {
+            return ResultTagRemoved;
+        }
+        return ResultWrongDeviceState;
+    }
+
+    if (mount_target == MountTarget::None || mount_target == MountTarget::Rom) {
+        LOG_ERROR(Service_NFC, "Amiibo is read only", device_state);
+        return ResultWrongDeviceState;
+    }
+
+    u8 flags = static_cast<u8>(tag.file.settings.settings.raw >> 0x4);
+    if (tag.file.settings.settings.amiibo_initialized == 0) {
+        flags = flags & 0xfe;
+    }
+
+    u64 application_id = 0;
+    u32 application_area_id = 0;
+    AppAreaVersion app_area_version = AppAreaVersion::NotSet;
+    if (tag.file.settings.settings.appdata_initialized != 0) {
+        application_id = tag.file.application_id;
+        app_area_version =
+            static_cast<AppAreaVersion>(application_id >> application_id_version_offset & 0xf);
+
+        // Restore application id to original value
+        if (application_id >> 0x38 != 0) {
+            const u8 application_byte = tag.file.application_id_byte & 0xf;
+            application_id &= ~(0xfULL << application_id_version_offset);
+            application_id |= static_cast<u64>(application_byte) << application_id_version_offset;
+        }
+
+        application_area_id = tag.file.application_area_id;
+    }
+
+    // TODO: Validate this data
+    admin_info = {
+        .application_id = application_id,
+        .application_area_id = application_area_id,
+        .crc_change_counter = tag.file.settings.crc_counter,
+        .flags = flags,
+        .tag_type = PackedTagType::Type2,
+        .app_area_version = app_area_version,
+    };
+
+    return RESULT_SUCCESS;
+}
+
+ResultCode NfcDevice::DeleteRegisterInfo() {
+    if (device_state != DeviceState::TagMounted) {
+        LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
+        if (device_state == DeviceState::TagRemoved) {
+            return ResultTagRemoved;
+        }
+        return ResultWrongDeviceState;
+    }
+
+    CryptoPP::AutoSeededRandomPool rng;
+    const std::size_t data_size = sizeof(tag.file.owner_mii);
+    std::array<CryptoPP::byte, data_size> buffer{};
+    rng.GenerateBlock(buffer.data(), data_size);
+    memcpy(&tag.file.owner_mii, buffer.data(), data_size);
+    tag.file.settings.settings.amiibo_initialized.Assign(0);
+
+    return Flush();
 }
 
 ResultCode NfcDevice::SetNicknameAndOwner(const AmiiboName& amiibo_name) {
@@ -374,7 +459,7 @@ ResultCode NfcDevice::SetNicknameAndOwner(const AmiiboName& amiibo_name) {
         return WrongDeviceState;
     }
 
-    auto& settings = tag_data.settings;
+    auto& settings = tag.file.settings;
 
     settings.init_date = GetAmiiboDate();
     settings.write_date = GetAmiiboDate();
@@ -383,10 +468,10 @@ ResultCode NfcDevice::SetNicknameAndOwner(const AmiiboName& amiibo_name) {
     // settings.crc = CalculateCRC(settings);
 
     // TODO: Calculate mii checksum
-    // tag_data.owner_mii_aes_ccm = ? ? ? ? ;
+    // tag.file.owner_mii_aes_ccm = ? ? ? ? ;
 
     SetAmiiboName(settings, amiibo_name);
-    tag_data.owner_mii = HLE::Applets::MiiSelector::GetStandardMiiResult().selected_mii_data;
+    tag.file.owner_mii = HLE::Applets::MiiSelector::GetStandardMiiResult().selected_mii_data;
     settings.settings.amiibo_initialized.Assign(1);
 
     return Flush();
@@ -449,12 +534,12 @@ ResultCode NfcDevice::OpenApplicationArea(u32 access_id) {
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.appdata_initialized.Value() == 0) {
+    if (tag.file.settings.settings.appdata_initialized.Value() == 0) {
         LOG_WARNING(Service_NFC, "Application area is not initialized");
         return ApplicationAreaIsNotInitialized;
     }
 
-    if (tag_data.application_area_id != access_id) {
+    if (tag.file.application_area_id != access_id) {
         LOG_WARNING(Service_NFC, "Wrong application area id");
         return WrongApplicationAreaId;
     }
@@ -480,12 +565,12 @@ ResultCode NfcDevice::GetApplicationAreaId(u32& application_area_id) const {
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.appdata_initialized.Value() == 0) {
+    if (tag.file.settings.settings.appdata_initialized.Value() == 0) {
         LOG_WARNING(Service_NFC, "Application area is not initialized");
         return ApplicationAreaIsNotInitialized;
     }
 
-    application_area_id = tag_data.application_area_id;
+    application_area_id = tag.file.application_area_id;
 
     return RESULT_SUCCESS;
 }
@@ -509,7 +594,7 @@ ResultCode NfcDevice::GetApplicationArea(std::vector<u8>& data) const {
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.appdata_initialized.Value() == 0) {
+    if (tag.file.settings.settings.appdata_initialized.Value() == 0) {
         LOG_ERROR(Service_NFC, "Application area is not initialized");
         return ApplicationAreaIsNotInitialized;
     }
@@ -518,7 +603,7 @@ ResultCode NfcDevice::GetApplicationArea(std::vector<u8>& data) const {
         data.resize(sizeof(ApplicationArea));
     }
 
-    memcpy(data.data(), tag_data.application_area.data(), data.size());
+    memcpy(data.data(), tag.file.application_area.data(), data.size());
 
     return RESULT_SUCCESS;
 }
@@ -542,7 +627,7 @@ ResultCode NfcDevice::SetApplicationArea(std::span<const u8> data) {
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.appdata_initialized.Value() == 0) {
+    if (tag.file.settings.settings.appdata_initialized.Value() == 0) {
         LOG_ERROR(Service_NFC, "Application area is not initialized");
         return ApplicationAreaIsNotInitialized;
     }
@@ -552,16 +637,19 @@ ResultCode NfcDevice::SetApplicationArea(std::span<const u8> data) {
         return WrongDeviceState;
     }
 
-    std::memcpy(tag_data.application_area.data(), data.data(), data.size());
+    std::memcpy(tag.file.application_area.data(), data.data(), data.size());
 
     // Fill remaining data with random numbers
     CryptoPP::AutoSeededRandomPool rng;
     const std::size_t data_size = sizeof(ApplicationArea) - data.size();
     std::vector<CryptoPP::byte> buffer(data_size);
     rng.GenerateBlock(buffer.data(), data_size);
-    memcpy(tag_data.application_area.data() + data.size(), buffer.data(), data_size);
+    memcpy(tag.file.application_area.data() + data.size(), buffer.data(), data_size);
 
-    tag_data.applicaton_write_counter++;
+    if (tag.file.application_write_counter != counter_limit) {
+        tag.file.application_write_counter++;
+    }
+
     is_data_moddified = true;
 
     return RESULT_SUCCESS;
@@ -576,7 +664,7 @@ ResultCode NfcDevice::CreateApplicationArea(u32 access_id, std::span<const u8> d
         return WrongDeviceState;
     }
 
-    if (tag_data.settings.settings.appdata_initialized.Value() != 0) {
+    if (tag.file.settings.settings.appdata_initialized.Value() != 0) {
         LOG_ERROR(Service_NFC, "Application area already exist");
         return ApplicationAreaExist;
     }
@@ -603,27 +691,38 @@ ResultCode NfcDevice::RecreateApplicationArea(u32 access_id, std::span<const u8>
         return WrongApplicationAreaSize;
     }
 
-    std::memcpy(tag_data.application_area.data(), data.data(), data.size());
+    std::memcpy(tag.file.application_area.data(), data.data(), data.size());
 
     // Fill remaining data with random numbers
     CryptoPP::AutoSeededRandomPool rng;
     const std::size_t data_size = sizeof(ApplicationArea) - data.size();
     std::vector<CryptoPP::byte> buffer(data_size);
     rng.GenerateBlock(buffer.data(), data_size);
-    memcpy(tag_data.application_area.data() + data.size(), buffer.data(), data_size);
+    memcpy(tag.file.application_area.data() + data.size(), buffer.data(), data_size);
 
-    u64 title_id{};
-    if (Core::System::GetInstance().GetAppLoader().ReadProgramId(title_id) ==
-        Loader::ResultStatus::Success) {
-        // TODO: Investigate why the title id needs to be moddified
-        tag_data.title_id = title_id;
-        tag_data.title_id = tag_data.title_id | 0x30000000ULL;
+    if (tag.file.application_write_counter != counter_limit) {
+        tag.file.application_write_counter++;
     }
 
-    tag_data.settings.settings.appdata_initialized.Assign(1);
-    tag_data.application_area_id = access_id;
-    tag_data.applicaton_write_counter++;
-    tag_data.unknown = {};
+    u64 application_id{};
+    if (Core::System::GetInstance().GetAppLoader().ReadProgramId(application_id) ==
+        Loader::ResultStatus::Success) {
+        const u64 application_id_without_version_byte =
+            application_id & ~(0xfULL << application_id_version_offset);
+
+        tag.file.application_id_byte =
+            static_cast<u8>(application_id >> application_id_version_offset & 0xf);
+        tag.file.application_id =
+            application_id_without_version_byte |
+            (static_cast<u64>(AppAreaVersion::Nintendo3DSv2) << application_id_version_offset);
+    }
+    tag.file.settings.settings.appdata_initialized.Assign(1);
+    tag.file.application_area_id = access_id;
+    tag.file.unknown = {};
+
+    // TODO: this is a mix of tag.file input
+    std::array<u8, 0x7e> unknown_input{};
+    tag.file.application_area_crc = CalculateCrc(unknown_input);
 
     return Flush();
 }
@@ -648,14 +747,33 @@ ResultCode NfcDevice::DeleteApplicationArea() {
     rng.GenerateBlock(buffer.data(), data_size);
 
     // Reset data with random bytes
-    memcpy(tag_data.application_area.data(), buffer.data(), data_size);
-    memcpy(&tag_data.title_id, buffer.data(), sizeof(u64));
-    tag_data.application_area_id = rng.GenerateWord32();
-    tag_data.settings.settings.appdata_initialized.Assign(0);
-    tag_data.applicaton_write_counter++;
-    tag_data.unknown = {};
+    memcpy(tag.file.application_area.data(), buffer.data(), data_size);
+    memcpy(&tag.file.application_id, buffer.data(), sizeof(u64));
+    tag.file.application_area_id = rng.GenerateWord32();
+    tag.file.settings.settings.appdata_initialized.Assign(0);
+    tag.file.application_write_counter++;
+    tag.file.unknown = {};
 
     return Flush();
+}
+
+ResultCode NfcDevice::ApplicationAreaExist(bool& has_application_area) {
+    if (device_state != DeviceState::TagMounted) {
+        LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
+        if (device_state == DeviceState::TagRemoved) {
+            return ResultTagRemoved;
+        }
+        return ResultWrongDeviceState;
+    }
+
+    if (mount_target == MountTarget::None || mount_target == MountTarget::Rom) {
+        LOG_ERROR(Service_NFC, "Amiibo is read only", device_state);
+        return ResultWrongDeviceState;
+    }
+
+    has_application_area = tag.file.settings.settings.appdata_initialized.Value() != 0;
+
+    return RESULT_SUCCESS;
 }
 
 u32 NfcDevice::GetApplicationAreaSize() const {
@@ -698,6 +816,43 @@ AmiiboDate NfcDevice::GetAmiiboDate() const {
     amiibo_date.SetDay(static_cast<u8>(local_tm.tm_mday));
 
     return amiibo_date;
+}
+
+void NfcDevice::UpdateSettingsCrc() {
+    auto& settings = tag.file.settings;
+
+    if (settings.crc_counter != counter_limit) {
+        settings.crc_counter++;
+    }
+
+    // TODO: this reads data from a global, find what it is
+    std::array<u8, 8> unknown_input{};
+    settings.crc = CalculateCrc(unknown_input);
+}
+
+u32 NfcDevice::CalculateCrc(std::span<u8> data) {
+    constexpr u32 magic = 0xedb88320;
+    u32 crc = 0xffffffff;
+
+    if (data.size() == 0) {
+        return 0;
+    }
+
+    for (u8 input : data) {
+        u32 temp = (crc ^ input) >> 1;
+        if (((crc ^ input) & 1) != 0) {
+            temp = temp ^ magic;
+        }
+
+        for (std::size_t step = 0; step < 7; ++step) {
+            crc = temp >> 1;
+            if ((temp & 1) != 0) {
+                crc = temp >> 1 ^ magic;
+            }
+        }
+    }
+
+    return ~crc;
 }
 
 } // namespace Service::NFC

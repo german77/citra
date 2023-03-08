@@ -39,7 +39,9 @@ NFC_M::NFC_M(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {IPC::MakeHeader(0x001A, 0, 0), &NFC_M::Unknown0x1A, "Unknown0x1A"},
         {IPC::MakeHeader(0x001B, 0, 0), &NFC_M::GetIdentificationBlock, "GetIdentificationBlock"},
         // nfc:m
-        {IPC::MakeHeader(0x0404, 41, 0), &NFC_M::SetAmiiboSettings, "SetAmiiboSettings"}
+        {IPC::MakeHeader(0x0401, 3, 2), &NFC_M::ResetAmiiboSettings, "ResetAmiiboSettings"},
+        {IPC::MakeHeader(0x0404, 41, 0),& NFC_M::SetAmiiboSettings, "SetAmiiboSettings"},
+        {IPC::MakeHeader(0x0406, 0, 0),& NFC_M::DeleteAppData, "DeleteAppData"}
         // clang-format on
     };
     RegisterHandlers(functions);

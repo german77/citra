@@ -5,6 +5,7 @@
 
 #include <span>
 #include <vector>
+#include <boost/serialization/binary_object.hpp>
 
 #include "common/common_types.h"
 #include "core/hle/service/nfc/nfc_results.h"
@@ -74,8 +75,14 @@ private:
 
     std::string amiibo_filename = "";
 
-    NTAG215File tag_data{};
-    EncryptedNTAG215File encrypted_tag_data{};
+    SerializableAmiiboFile tag{};
+    SerializableEncryptedAmiiboFile encrypted_tag{};
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int);
+    friend class boost::serialization::access;
 };
 
 } // namespace Service::NFC
+
+SERVICE_CONSTRUCT(Service::NFC::NfcDevice)
