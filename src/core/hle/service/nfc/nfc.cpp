@@ -73,30 +73,6 @@ void Module::Interface::StartTagScanning(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called, in_val={:04x}", in_val);
 }
 
-void Module::Interface::GetTagInfo(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x11, 0, 0);
-
-    TagInfo tag_info{};
-    const auto result = nfc->device->GetTagInfo(tag_info);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(12, 0);
-    rb.Push(result);
-    rb.PushRaw<TagInfo>(tag_info);
-    LOG_INFO(Service_NFC, "called");
-}
-
-void Module::Interface::GetAmiiboConfig(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x18, 0, 0);
-
-    AmiiboConfig amiibo_config{};
-    const auto result = nfc->device->GetAmiiboConfig(amiibo_config);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(17, 0);
-    rb.Push(result);
-    rb.PushRaw<AmiiboConfig>(amiibo_config);
-    LOG_INFO(Service_NFC, "called");
-}
-
 void Module::Interface::StopTagScanning(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x06, 0, 0);
 
@@ -114,7 +90,7 @@ void Module::Interface::LoadAmiiboData(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(result);
-    LOG_INFO(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::ResetTagScanState(Kernel::HLERequestContext& ctx) {
@@ -134,18 +110,6 @@ void Module::Interface::UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(result);
-    LOG_INFO(Service_NFC, "called");
-}
-
-void Module::Interface::GetTagInfo2(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x10, 0, 0);
-
-    TagInfo2 tag_info{};
-    const auto result = nfc->device->GetTagInfo2(tag_info);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(26, 0);
-    rb.Push(result);
-    rb.PushRaw<TagInfo2>(tag_info);
     LOG_INFO(Service_NFC, "called");
 }
 
@@ -185,6 +149,30 @@ void Module::Interface::CommunicationGetStatus(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NFC, "(STUBBED) called");
 }
 
+void Module::Interface::GetTagInfo2(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x10, 0, 0);
+
+    TagInfo2 tag_info{};
+    const auto result = nfc->device->GetTagInfo2(tag_info);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(26, 0);
+    rb.Push(result);
+    rb.PushRaw<TagInfo2>(tag_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::GetTagInfo(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x11, 0, 0);
+
+    TagInfo tag_info{};
+    const auto result = nfc->device->GetTagInfo(tag_info);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(12, 0);
+    rb.Push(result);
+    rb.PushRaw<TagInfo>(tag_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
 void Module::Interface::CommunicationGetResult(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x12, 0, 0);
 
@@ -215,7 +203,7 @@ void Module::Interface::InitializeWriteAppData(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(result);
-    LOG_DEBUG(Service_NFC, "called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::ReadAppData(Kernel::HLERequestContext& ctx) {
@@ -252,6 +240,18 @@ void Module::Interface::GetAmiiboSettings(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(43, 0);
     rb.Push(result);
     rb.PushRaw<SettingsInfo>(settings_info);
+    LOG_INFO(Service_NFC, "called");
+}
+
+void Module::Interface::GetAmiiboConfig(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x18, 0, 0);
+
+    AmiiboConfig amiibo_config{};
+    const auto result = nfc->device->GetAmiiboConfig(amiibo_config);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(17, 0);
+    rb.Push(result);
+    rb.PushRaw<AmiiboConfig>(amiibo_config);
     LOG_INFO(Service_NFC, "called");
 }
 
