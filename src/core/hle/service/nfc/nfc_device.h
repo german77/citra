@@ -1,5 +1,6 @@
-// SPDX-FileCopyrightText: Copyright 2018 yuzu Emulator Project
-// SPDX-License-Identifier: GPL-2.0-or-later
+// Copyright 2022 yuzu Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
 
 #pragma once
 
@@ -23,7 +24,7 @@ public:
     NfcDevice(Core::System& system);
     ~NfcDevice();
 
-    bool LoadAmiibo(std::string amiibo_filename_);
+    bool LoadAmiibo(std::string filename);
     void CloseAmiibo();
 
     void Initialize();
@@ -56,7 +57,7 @@ public:
     ResultCode DeleteApplicationArea();
     ResultCode ApplicationAreaExist(bool& has_application_area);
 
-    u32 GetApplicationAreaSize() const;
+    constexpr u32 GetApplicationAreaSize() const;
     DeviceState GetCurrentState() const;
 
     std::shared_ptr<Kernel::Event> GetActivateEvent() const;

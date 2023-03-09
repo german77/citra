@@ -1,5 +1,6 @@
-// SPDX-FileCopyrightText: Copyright 2018 yuzu Emulator Project
-// SPDX-License-Identifier: GPL-2.0-or-later
+// Copyright 2022 yuzu Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
 
 #include <array>
 #include <chrono>
@@ -38,8 +39,8 @@ NfcDevice::NfcDevice(Core::System& system) {
 
 NfcDevice::~NfcDevice() = default;
 
-bool NfcDevice::LoadAmiibo(std::string amiibo_filename_) {
-    FileUtil::IOFile amiibo_file(amiibo_filename_, "rb");
+bool NfcDevice::LoadAmiibo(std::string filename) {
+    FileUtil::IOFile amiibo_file(filename, "rb");
 
     if (device_state != DeviceState::SearchingForTag) {
         LOG_ERROR(Service_NFC, "Game is not looking for amiibos, current state {}", device_state);
@@ -47,19 +48,19 @@ bool NfcDevice::LoadAmiibo(std::string amiibo_filename_) {
     }
 
     if (!amiibo_file.IsOpen()) {
-        LOG_ERROR(Service_NFC, "Could not open amiibo file \"{}\"", amiibo_filename_);
+        LOG_ERROR(Service_NFC, "Could not open amiibo file \"{}\"", filename);
         return false;
     }
 
     if (!amiibo_file.ReadBytes(&encrypted_tag.file, sizeof(encrypted_tag.file))) {
-        LOG_ERROR(Service_NFC, "Could not read amiibo data from file \"{}\"", amiibo_filename_);
+        LOG_ERROR(Service_NFC, "Could not read amiibo data from file \"{}\"", filename);
         encrypted_tag.file = {};
         return false;
     }
 
     // TODO: Filter by allowed_protocols here
 
-    amiibo_filename = amiibo_filename_;
+    amiibo_filename = filename;
     device_state = DeviceState::TagFound;
     tag_out_of_range_event->Clear();
     tag_in_range_event->Signal();
@@ -797,7 +798,7 @@ ResultCode NfcDevice::ApplicationAreaExist(bool& has_application_area) {
     return RESULT_SUCCESS;
 }
 
-u32 NfcDevice::GetApplicationAreaSize() const {
+constexpr u32 NfcDevice::GetApplicationAreaSize() const {
     return sizeof(ApplicationArea);
 }
 
