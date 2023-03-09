@@ -289,6 +289,10 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
 
 void Module::Interface::Format(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x401, 3, 2);
+    u32 unknown1 = rp.Pop<u32>();
+    u32 unknown2 = rp.Pop<u32>();
+    u32 unknown3 = rp.Pop<u32>();
+    std::vector<u8> buffer = rp.PopStaticBuffer();
 
     const auto result = nfc->device->Format();
 
@@ -306,7 +310,7 @@ void Module::Interface::GetAdminInfo(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(17, 0);
     rb.Push(result);
     rb.PushRaw<AdminInfo>(admin_info);
-    LOG_WARNING(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx) {
@@ -341,7 +345,7 @@ void Module::Interface::DeleteRegisterInfo(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
-    LOG_WARNING(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::DeleteApplicationArea(Kernel::HLERequestContext& ctx) {
@@ -351,7 +355,7 @@ void Module::Interface::DeleteApplicationArea(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
-    LOG_WARNING(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::ExistsApplicationArea(Kernel::HLERequestContext& ctx) {
@@ -363,7 +367,7 @@ void Module::Interface::ExistsApplicationArea(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(0x2, 0);
     rb.Push(result);
     rb.Push(has_application_area);
-    LOG_WARNING(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 std::shared_ptr<Module> Module::Interface::GetModule() const {

@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: Copyright 2022 yuzu Emulator Project
-// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2022 yuzu Emulator Project
+// Licensed under GPLv2 or any later version
+// Refer to the license.txt file included.
 
-// SPDX-FileCopyrightText: Copyright 2017 socram8888/amiitool
-// SPDX-License-Identifier: MIT
+// Copyright 2017 socram8888/amiitool
+// Licensed under MIT
+// Refer to the license.txt file included.
 
 #include <array>
 #include <cryptopp/aes.h>
