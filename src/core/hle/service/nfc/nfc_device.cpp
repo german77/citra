@@ -168,9 +168,6 @@ ResultCode NfcDevice::Flush() {
         return ResultWriteAmiiboFailed;
     }
 
-    std::vector<u8> data(sizeof(encrypted_tag.file));
-    memcpy(data.data(), &encrypted_tag.file, sizeof(encrypted_tag.file));
-
     if (amiibo_filename.empty()) {
         LOG_ERROR(Service_NFC, "Tried to use UpdateStoredAmiiboData on a nonexistant file.");
         return ResultWriteAmiiboFailed;
@@ -183,7 +180,8 @@ ResultCode NfcDevice::Flush() {
         LOG_ERROR(Service_NFC, "Could not open amiibo file \"{}\"", amiibo_filename);
         write_failed = true;
     }
-    if (!write_failed && !amiibo_file.WriteBytes(data.data(), sizeof(data))) {
+    if (!write_failed &&
+        !amiibo_file.WriteBytes(&encrypted_tag.file, sizeof(EncryptedNTAG215File))) {
         LOG_ERROR(Service_NFC, "Could not write to amiibo file \"{}\"", amiibo_filename);
         write_failed = true;
     }

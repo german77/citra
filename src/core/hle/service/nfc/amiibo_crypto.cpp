@@ -359,14 +359,12 @@ bool EncodeAmiibo(const NTAG215File& tag_data, EncryptedNTAG215File& encrypted_t
 
     // Generate data HMAC
     CryptoPP::HMAC<CryptoPP::SHA256> data_hmac(data_keys.hmac_key.data(), sizeof(HmacKey));
-    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
-                              reinterpret_cast<const unsigned char*>(&tag_data.write_counter),
-                              input_length2);
-    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
-                              reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag),
-                              sizeof(HashData));
-    data_hmac.CalculateDigest(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data),
-                              reinterpret_cast<const unsigned char*>(&tag_data.uid), input_length);
+    data_hmac.Update(reinterpret_cast<const unsigned char*>(&tag_data.write_counter),
+                     input_length2);
+    data_hmac.Update(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_tag),
+                     sizeof(HashData));
+    data_hmac.Update(reinterpret_cast<const unsigned char*>(&tag_data.uid), input_length);
+    data_hmac.Final(reinterpret_cast<unsigned char*>(&encoded_tag_data.hmac_data));
 
     // Encrypt
     Cipher(data_keys, tag_data, encoded_tag_data);
