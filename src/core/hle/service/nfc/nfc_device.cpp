@@ -4,6 +4,7 @@
 
 #include <array>
 #include <chrono>
+#include <boost/crc.hpp>
 #include <cryptopp/osrng.h>
 
 #include "common/logging/log.h"
@@ -403,8 +404,8 @@ ResultCode NfcDevice::GetAdminInfo(AdminInfo& admin_info) const {
         // Restore application id to original value
         if (application_id >> 0x38 != 0) {
             const u8 application_byte = tag.file.application_id_byte & 0xf;
-            application_id &= ~(0xfULL << application_id_version_offset);
-            application_id |= static_cast<u64>(application_byte) << application_id_version_offset;
+            application_id = RemoveVersionByte(application_id) |
+                             (static_cast<u64>(application_byte) << application_id_version_offset);
         }
 
         application_area_id = tag.file.application_area_id;
@@ -451,7 +452,7 @@ ResultCode NfcDevice::DeleteRegisterInfo() {
     tag.file.unknown = rng.GenerateByte();
     tag.file.unknown2[0] = rng.GenerateWord32();
     tag.file.unknown2[1] = rng.GenerateWord32();
-    tag.file.application_area_crc = rng.GenerateWord32();
+    tag.file.register_info_crc = rng.GenerateWord32();
     tag.file.settings.init_date.raw_date = static_cast<u32>(rng.GenerateWord32());
     tag.file.settings.settings.font_region.Assign(0);
     tag.file.settings.settings.amiibo_initialized.Assign(0);
@@ -459,7 +460,7 @@ ResultCode NfcDevice::DeleteRegisterInfo() {
     return Flush();
 }
 
-ResultCode NfcDevice::SetRegisterInfoPrivate(const AmiiboName& amiibo_name) {
+ResultCode NfcDevice::SetRegisterInfoPrivate(const RegisterInfoPrivate& register_info) {
     if (device_state != DeviceState::TagMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         if (device_state == DeviceState::TagRemoved) {
@@ -483,17 +484,16 @@ ResultCode NfcDevice::SetRegisterInfoPrivate(const AmiiboName& amiibo_name) {
     // TODO: Calculate mii checksum
     // tag.file.owner_mii_aes_ccm = ? ? ? ? ;
 
-    SetAmiiboName(settings, amiibo_name);
-    tag.file.owner_mii = HLE::Applets::MiiSelector::GetStandardMiiResult().selected_mii_data;
+    SetAmiiboName(settings, register_info.amiibo_name);
+    tag.file.owner_mii = register_info.mii_data;
+    tag.file.mii_extension = {};
     tag.file.unknown = 0;
-    tag.file.unknown2[6] = 0;
+    tag.file.unknown2 = {};
     settings.country_code_id = 0;
     settings.settings.font_region.Assign(0);
     settings.settings.amiibo_initialized.Assign(1);
 
-    // TODO: this is a mix of tag.file input
-    std::array<u8, 0x7e> unknown_input{};
-    tag.file.application_area_crc = CalculateCrc(unknown_input);
+    UpdateRegisterInfoCrc();
 
     return Flush();
 }
@@ -693,6 +693,11 @@ ResultCode NfcDevice::RecreateApplicationArea(u32 access_id, std::span<const u8>
         return ResultWrongDeviceState;
     }
 
+    if (is_app_area_open) {
+        LOG_ERROR(Service_NFC, "Application area is open");
+        return ResultWrongDeviceState;
+    }
+
     if (mount_target == MountTarget::None || mount_target == MountTarget::Rom) {
         LOG_ERROR(Service_NFC, "Amiibo is read only", device_state);
         return ResultWrongDeviceState;
@@ -719,22 +724,18 @@ ResultCode NfcDevice::RecreateApplicationArea(u32 access_id, std::span<const u8>
     u64 application_id{};
     if (Core::System::GetInstance().GetAppLoader().ReadProgramId(application_id) ==
         Loader::ResultStatus::Success) {
-        const u64 application_id_without_version_byte =
-            application_id & ~(0xfULL << application_id_version_offset);
-
         tag.file.application_id_byte =
             static_cast<u8>(application_id >> application_id_version_offset & 0xf);
         tag.file.application_id =
-            application_id_without_version_byte |
+            RemoveVersionByte(application_id) |
             (static_cast<u64>(AppAreaVersion::Nintendo3DSv2) << application_id_version_offset);
     }
     tag.file.settings.settings.appdata_initialized.Assign(1);
     tag.file.application_area_id = access_id;
     tag.file.unknown = {};
+    tag.file.unknown2 = {};
 
-    // TODO: this is a mix of tag.file input
-    std::array<u8, 0x7e> unknown_input{};
-    tag.file.application_area_crc = CalculateCrc(unknown_input);
+    UpdateRegisterInfoCrc();
 
     return Flush();
 }
@@ -773,6 +774,10 @@ ResultCode NfcDevice::DeleteApplicationArea() {
     tag.file.application_id_byte = rng.GenerateByte();
     tag.file.settings.settings.appdata_initialized.Assign(0);
     tag.file.unknown = {};
+    tag.file.unknown2 = {};
+    is_app_area_open = false;
+
+    UpdateRegisterInfoCrc();
 
     return Flush();
 }
@@ -838,6 +843,10 @@ AmiiboDate NfcDevice::GetAmiiboDate() const {
     return amiibo_date;
 }
 
+u64 NfcDevice::RemoveVersionByte(u64 application_id) const {
+    return application_id & ~(0xfULL << application_id_version_offset);
+}
+
 void NfcDevice::UpdateSettingsCrc() {
     auto& settings = tag.file.settings;
 
@@ -847,32 +856,36 @@ void NfcDevice::UpdateSettingsCrc() {
 
     // TODO: this reads data from a global, find what it is
     std::array<u8, 8> unknown_input{};
-    settings.crc = CalculateCrc(unknown_input);
+    boost::crc_32_type crc;
+    crc.process_bytes(&unknown_input, sizeof(unknown_input));
+    settings.crc = crc.checksum();
 }
 
-u32 NfcDevice::CalculateCrc(std::span<u8> data) {
-    constexpr u32 magic = 0xedb88320;
-    u32 crc = 0xffffffff;
+void NfcDevice::UpdateRegisterInfoCrc() {
+#pragma pack(push, 1)
+    struct CrcData {
+        HLE::Applets::MiiData mii;
+        INSERT_PADDING_BYTES(0x2);
+        u16 owner_mii_aes_ccm;
+        u8 application_id_byte;
+        u8 unknown;
+        u64 mii_extension;
+        std::array<u32, 0x5> unknown2;
+    };
+    static_assert(sizeof(CrcData) == 0x7e, "CrcData is an invalid size");
+#pragma pack(pop)
 
-    if (data.size() == 0) {
-        return 0;
-    }
+    const CrcData crc_data{
+        .mii = tag.file.owner_mii,
+        .application_id_byte = tag.file.application_id_byte,
+        .unknown = tag.file.unknown,
+        .mii_extension = tag.file.mii_extension,
+        .unknown2 = tag.file.unknown2,
+    };
 
-    for (u8 input : data) {
-        u32 temp = (crc ^ input) >> 1;
-        if (((crc ^ input) & 1) != 0) {
-            temp = temp ^ magic;
-        }
-
-        for (std::size_t step = 0; step < 7; ++step) {
-            crc = temp >> 1;
-            if ((temp & 1) != 0) {
-                crc = temp >> 1 ^ magic;
-            }
-        }
-    }
-
-    return ~crc;
+    boost::crc_32_type crc;
+    crc.process_bytes(&crc_data, sizeof(CrcData));
+    tag.file.register_info_crc = crc.checksum();
 }
 
 } // namespace Service::NFC
