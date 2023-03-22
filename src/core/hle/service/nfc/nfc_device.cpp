@@ -481,8 +481,9 @@ ResultCode NfcDevice::SetRegisterInfoPrivate(const RegisterInfoPrivate& register
         settings.write_date = GetAmiiboDate();
     }
 
-    // TODO: Calculate mii checksum
-    // tag.file.owner_mii_aes_ccm = ? ? ? ? ;
+    // Calculate mii CRC with the padding
+    tag.file.owner_mii_aes_ccm = boost::crc<16, 0x1021, 0, 0, false, false>(
+        &register_info.mii_data, sizeof(HLE::Applets::MiiData) + sizeof(u16));
 
     SetAmiiboName(settings, register_info.amiibo_name);
     tag.file.owner_mii = register_info.mii_data;
@@ -866,7 +867,7 @@ void NfcDevice::UpdateRegisterInfoCrc() {
     struct CrcData {
         HLE::Applets::MiiData mii;
         INSERT_PADDING_BYTES(0x2);
-        u16 owner_mii_aes_ccm;
+        u16 mii_crc;
         u8 application_id_byte;
         u8 unknown;
         u64 mii_extension;
@@ -877,6 +878,7 @@ void NfcDevice::UpdateRegisterInfoCrc() {
 
     const CrcData crc_data{
         .mii = tag.file.owner_mii,
+        .mii_crc = tag.file.owner_mii_aes_ccm,
         .application_id_byte = tag.file.application_id_byte,
         .unknown = tag.file.unknown,
         .mii_extension = tag.file.mii_extension,
