@@ -327,15 +327,13 @@ void Module::Interface::GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx) {
 void Module::Interface::SetRegisterInfo(Kernel::HLERequestContext& ctx) {
     // Please fix this part it's probably wrong
     IPC::RequestParser rp(ctx, 0x404, 41, 0);
+    const auto register_info = rp.PopRaw<RegisterInfoPrivate>();
 
-    // TODO: Pull amiibo settings from request parser
-    AmiiboName name{0x43, 0x69, 0x74, 0x72, 0x61, 0x00}; // Citra
-
-    const auto result = nfc->device->SetRegisterInfoPrivate(name);
+    const auto result = nfc->device->SetRegisterInfoPrivate(register_info);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(0x1, 0);
     rb.Push(result);
-    LOG_WARNING(Service_NFC, "(STUBBED) called");
+    LOG_INFO(Service_NFC, "called");
 }
 
 void Module::Interface::DeleteRegisterInfo(Kernel::HLERequestContext& ctx) {

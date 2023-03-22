@@ -44,7 +44,7 @@ public:
     ResultCode GetAdminInfo(AdminInfo& admin_info) const;
 
     ResultCode DeleteRegisterInfo();
-    ResultCode SetRegisterInfoPrivate(const AmiiboName& amiibo_name);
+    ResultCode SetRegisterInfoPrivate(const RegisterInfoPrivate& register_info);
     ResultCode RestoreAmiibo();
     ResultCode Format();
 
@@ -67,8 +67,9 @@ private:
     AmiiboName GetAmiiboName(const AmiiboSettings& settings) const;
     void SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo_name);
     AmiiboDate GetAmiiboDate() const;
+    u64 RemoveVersionByte(u64 application_id) const;
     void UpdateSettingsCrc();
-    u32 CalculateCrc(std::span<u8> data);
+    void UpdateRegisterInfoCrc();
 
     std::shared_ptr<Kernel::Event> tag_in_range_event = nullptr;
     std::shared_ptr<Kernel::Event> tag_out_of_range_event = nullptr;

@@ -265,14 +265,16 @@ struct EncryptedAmiiboFile {
     HashData keygen_salt;             // Salt
     HashData hmac_data;               // Hash
     HLE::Applets::MiiData owner_mii;  // Encrypted Mii data
-    u32 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u16 padding;                      // Mii Padding
+    u16 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
     u64_be application_id;            // Encrypted Game id
     u16_be application_write_counter; // Encrypted Counter
     u32_be application_area_id;       // Encrypted Game id
     u8 application_id_byte;
     u8 unknown;
-    std::array<u32, 0x7> unknown2;
-    u32_be application_area_crc;
+    u64 mii_extension;
+    std::array<u32, 0x5> unknown2;
+    u32_be register_info_crc;
     ApplicationArea application_area; // Encrypted Game data
 };
 static_assert(sizeof(EncryptedAmiiboFile) == 0x1F8, "AmiiboFile is an invalid size");
@@ -287,14 +289,16 @@ struct NTAG215File {
     u8 amiibo_version;         // Amiibo file version
     AmiiboSettings settings;
     HLE::Applets::MiiData owner_mii;  // Mii data
-    u32 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u16 padding;                      // Mii Padding
+    u16 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
     u64_be application_id;            // Game id
     u16_be application_write_counter; // Counter
     u32_be application_area_id;
     u8 application_id_byte;
     u8 unknown;
-    std::array<u32, 0x7> unknown2;
-    u32_be application_area_crc;
+    u64 mii_extension;
+    std::array<u32, 0x5> unknown2;
+    u32_be register_info_crc;
     ApplicationArea application_area; // Game data
     HashData hmac_tag;                // Hash
     UniqueSerialNumber uid;           // Unique serial number
@@ -409,6 +413,17 @@ struct RegisterInfo {
     INSERT_PADDING_BYTES(0x2C);
 };
 static_assert(sizeof(RegisterInfo) == 0xA8, "RegisterInfo is an invalid size");
+
+struct RegisterInfoPrivate {
+    HLE::Applets::MiiData mii_data;
+    INSERT_PADDING_BYTES(0x4);
+    AmiiboName amiibo_name;
+    Settings flags;
+    u8 font_region;
+    WriteDate creation_date;
+    INSERT_PADDING_BYTES(0x28);
+};
+static_assert(sizeof(RegisterInfoPrivate) == 0xA4, "RegisterInfoPrivate is an invalid size");
 
 struct AdminInfo {
     u64 application_id;
