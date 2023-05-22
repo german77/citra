@@ -2002,6 +2002,25 @@ void GMainWindow::OnLoadAmiibo() {
         return;
     }
 
+    Core::System& system{Core::System::GetInstance()};
+    Service::SM::ServiceManager& sm = system.ServiceManager();
+    auto nfc = sm.GetService<Service::NFC::Module::Interface>("nfc:u");
+    if (nfc == nullptr) {
+        return;
+    }
+
+    if (nfc->IsTagActive()) {
+        QMessageBox::warning(this, tr("Error opening amiibo data file"),
+                             tr("A tag is already on use."));
+        return;
+    }
+
+    if (!nfc->IsSearchingForAmiibos()) {
+        QMessageBox::warning(this, tr("Error opening amiibo data file"),
+                             tr("Game is not looking for amiibos."));
+        return;
+    }
+
     const QString extensions{QStringLiteral("*.bin")};
     const QString file_filter = tr("Amiibo File (%1);; All Files (*.*)").arg(extensions);
     const QString filename = QFileDialog::getOpenFileName(this, tr("Load Amiibo"), {}, file_filter);

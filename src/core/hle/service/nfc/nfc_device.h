@@ -25,15 +25,19 @@ public:
     ~NfcDevice();
 
     bool LoadAmiibo(std::string filename);
+    void UnloadAmiibo();
     void CloseAmiibo();
 
     void Initialize();
     void Finalize();
 
+    ResultCode StartCommunication();
+    ResultCode StopCommunication();
     ResultCode StartDetection(TagProtocol allowed_protocol);
     ResultCode StopDetection();
-    ResultCode Mount(MountTarget mount_target);
-    ResultCode Unmount();
+    ResultCode Mount();
+    ResultCode MountAmiibo();
+    ResultCode ResetTagScanState();
     ResultCode Flush();
 
     ResultCode GetTagInfo2(TagInfo2& tag_info) const;
@@ -59,26 +63,36 @@ public:
 
     constexpr u32 GetApplicationAreaSize() const;
     DeviceState GetCurrentState() const;
+    ResultCode GetCommunicationStatus(CommunicationState& status) const;
+    ResultCode CheckConnectionState() const;
 
     std::shared_ptr<Kernel::Event> GetActivateEvent() const;
     std::shared_ptr<Kernel::Event> GetDeactivateEvent() const;
 
 private:
-    AmiiboName GetAmiiboName(const AmiiboSettings& settings) const;
+    time_t GetCurrentTime() const;
     void SetAmiiboName(AmiiboSettings& settings, const AmiiboName& amiibo_name);
     AmiiboDate GetAmiiboDate() const;
     u64 RemoveVersionByte(u64 application_id) const;
     void UpdateSettingsCrc();
     void UpdateRegisterInfoCrc();
 
+    void BuildAmiiboWithoutKeys();
+
     std::shared_ptr<Kernel::Event> tag_in_range_event = nullptr;
     std::shared_ptr<Kernel::Event> tag_out_of_range_event = nullptr;
+    Core::TimingEventType* remove_amiibo_event = nullptr;
 
+    bool is_initalized{};
     bool is_data_moddified{};
     bool is_app_area_open{};
+    bool is_plain_amiibo{};
+    bool is_write_protected{};
+    bool is_tag_in_range{};
     TagProtocol allowed_protocols{};
-    MountTarget mount_target{MountTarget::None};
     DeviceState device_state{DeviceState::NotInitialized};
+    ConnectionState connection_state = ConnectionState::Success;
+    CommunicationState communication_state = CommunicationState::Idle;
 
     std::string amiibo_filename = "";
 
