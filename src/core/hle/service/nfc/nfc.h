@@ -22,10 +22,11 @@ class Event;
 
 namespace Service::NFC {
 
-enum class CommunicationStatus : u8 {
+enum class CommunicationMode : u8 {
     NotInitialized = 0,
-    AttemptInitialize = 1,
-    Initialized = 2,
+    Ntag = 1,
+    Amiibo = 2,
+    TrainTag = 3,
 };
 
 class Module final {
@@ -40,6 +41,10 @@ public:
 
         std::shared_ptr<Module> GetModule() const;
 
+        bool IsSearchingForAmiibos();
+
+        bool IsTagActive();
+
         bool LoadAmiibo(const std::string& fullpath);
 
         void RemoveAmiibo();
@@ -49,7 +54,7 @@ public:
          * NFC::Initialize service function
          *  Inputs:
          *      0 : Header code [0x00010040]
-         *      1 : (u8) unknown parameter. Can be either value 0x1 or 0x2
+         *      1 : (u8) CommunicationMode. Can be either value 0x1, 0x2 or 0x3
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
@@ -59,7 +64,7 @@ public:
          * NFC::Shutdown service function
          *  Inputs:
          *      0 : Header code [0x00020040]
-         *      1 : (u8) unknown parameter
+         *      1 : (u8) CommunicationMode.
          *  Outputs:
          *      1 : Result of function, 0 on success, otherwise error code
          */
@@ -281,15 +286,6 @@ public:
         void GetAppDataInitStruct(Kernel::HLERequestContext& ctx);
 
         /**
-         * NFC::Unknown0x1A service function
-         *  Inputs:
-         *      0 : Header code [0x001A0000]
-         *  Outputs:
-         *      1 : Result of function, 0 on success, otherwise error code
-         */
-        void Unknown0x1A(Kernel::HLERequestContext& ctx);
-
-        /**
          * NFC::GetIdentificationBlock service function
          *  Inputs:
          *      0 : Header code [0x001B0000]
@@ -367,7 +363,7 @@ public:
     };
 
 private:
-    CommunicationStatus nfc_status = CommunicationStatus::Initialized;
+    CommunicationMode nfc_mode = CommunicationMode::NotInitialized;
 
     std::shared_ptr<NfcDevice> device = nullptr;
 

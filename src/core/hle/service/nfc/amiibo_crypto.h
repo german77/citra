@@ -66,14 +66,14 @@ static_assert(sizeof(DerivedKeys) == 0x30, "DerivedKeys is an invalid size");
 /// Validates that the amiibo file is not corrupted
 bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file);
 
+/// Validates that the amiibo file is not corrupted
+bool IsAmiiboValid(const NTAG215File& ntag_file);
+
 /// Converts from encrypted file format to encoded file format
 NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data);
 
 /// Converts from encoded file format to encrypted file format
 EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data);
-
-/// Returns password needed to allow write access to protected memory
-u32 GetTagPassword(const TagUuid& uuid);
 
 // Generates Seed needed for key derivation
 HashSeed GetSeed(const NTAG215File& data);

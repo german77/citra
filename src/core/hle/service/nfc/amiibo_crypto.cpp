@@ -54,9 +54,6 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
     if (ntag_file.compability_container != 0xEEFF10F1U) {
         return false;
     }
-    if (amiibo_data.constant_value != 0xA5) {
-        return false;
-    }
     if (amiibo_data.model_info.tag_type != PackedTagType::Type2) {
         return false;
     }
@@ -70,6 +67,10 @@ bool IsAmiiboValid(const EncryptedNTAG215File& ntag_file) {
         return false;
     }
     return true;
+}
+
+bool IsAmiiboValid(const NTAG215File& ntag_file) {
+    return IsAmiiboValid(EncodedDataToNfcData(ntag_file));
 }
 
 NTAG215File NfcDataToEncodedData(const EncryptedNTAG215File& nfc_data) {
@@ -142,15 +143,6 @@ EncryptedNTAG215File EncodedDataToNfcData(const NTAG215File& encoded_data) {
     nfc_data.password = encoded_data.password;
 
     return nfc_data;
-}
-
-u32 GetTagPassword(const TagUuid& uuid) {
-    // Verifiy that the generated password is correct
-    u32 password = 0xAA ^ (uuid.uid[1] ^ uuid.uid[3]);
-    password &= (0x55 ^ (uuid.uid[2] ^ uuid.uid[4])) << 8;
-    password &= (0xAA ^ (uuid.uid[3] ^ uuid.uid[5])) << 16;
-    password &= (0x55 ^ (uuid.uid[4] ^ uuid.uid[6])) << 24;
-    return password;
 }
 
 HashSeed GetSeed(const NTAG215File& data) {

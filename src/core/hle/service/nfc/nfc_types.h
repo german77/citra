@@ -21,6 +21,19 @@ enum class ServiceType : u32 {
     System,
 };
 
+enum class CommunicationState : u8 {
+    Idle = 0,
+    SearchingForAdapter = 1,
+    Initialized = 2,
+    Active = 3,
+};
+
+enum class ConnectionState : u8 {
+    Success = 0,
+    NoAdapter = 1,
+    Lost = 2,
+};
+
 enum class DeviceState : u32 {
     NotInitialized = 0,
     Initialized = 1,
@@ -28,7 +41,7 @@ enum class DeviceState : u32 {
     TagFound = 3,
     TagRemoved = 4,
     TagMounted = 5,
-    Unavailable = 6, // Validate this one seems to have other name
+    TrainTagMounted = 6, // Validate this one seems to have other name
 };
 
 enum class ModelType : u32 {
@@ -126,7 +139,7 @@ using UniqueSerialNumber = std::array<u8, 7>;
 using LockBytes = std::array<u8, 2>;
 using HashData = std::array<u8, 0x20>;
 using ApplicationArea = std::array<u8, 0xD8>;
-using AmiiboName = std::array<u16, amiibo_name_length + 1>;
+using AmiiboName = std::array<u16_be, amiibo_name_length>;
 using DataBlock = std::array<u8, 0x10>;
 using KeyData = std::array<u8, 0x6>;
 
@@ -224,7 +237,7 @@ struct AmiiboSettings {
     AmiiboDate init_date;
     AmiiboDate write_date;
     u32_be crc;
-    std::array<u16_be, amiibo_name_length> amiibo_name; // UTF-16 text
+    AmiiboName amiibo_name; // UTF-16 text
 };
 static_assert(sizeof(AmiiboSettings) == 0x20, "AmiiboSettings is an invalid size");
 
@@ -266,7 +279,7 @@ struct EncryptedAmiiboFile {
     HashData hmac_data;               // Hash
     HLE::Applets::MiiData owner_mii;  // Encrypted Mii data
     u16 padding;                      // Mii Padding
-    u16 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u16_be owner_mii_aes_ccm;         // Mii data AES-CCM MAC
     u64_be application_id;            // Encrypted Game id
     u16_be application_write_counter; // Encrypted Counter
     u32_be application_area_id;       // Encrypted Game id
@@ -290,7 +303,7 @@ struct NTAG215File {
     AmiiboSettings settings;
     HLE::Applets::MiiData owner_mii;  // Mii data
     u16 padding;                      // Mii Padding
-    u16 owner_mii_aes_ccm;            // Mii data AES-CCM MAC
+    u16_be owner_mii_aes_ccm;         // Mii data AES-CCM MAC
     u64_be application_id;            // Game id
     u16_be application_write_counter; // Counter
     u32_be application_area_id;
@@ -405,8 +418,10 @@ static_assert(sizeof(ModelInfo) == 0x36, "ModelInfo is an invalid size");
 
 struct RegisterInfo {
     HLE::Applets::MiiData mii_data;
-    INSERT_PADDING_BYTES(0x4);
+    INSERT_PADDING_BYTES(0x2);
+    u16_be owner_mii_aes_ccm; // Mii data AES-CCM MAC
     AmiiboName amiibo_name;
+    INSERT_PADDING_BYTES(0x2); // Zero string terminator
     Settings flags;
     u8 font_region;
     WriteDate creation_date;
@@ -416,8 +431,10 @@ static_assert(sizeof(RegisterInfo) == 0xA8, "RegisterInfo is an invalid size");
 
 struct RegisterInfoPrivate {
     HLE::Applets::MiiData mii_data;
-    INSERT_PADDING_BYTES(0x4);
+    INSERT_PADDING_BYTES(0x2);
+    u16_be owner_mii_aes_ccm; // Mii data AES-CCM MAC
     AmiiboName amiibo_name;
+    INSERT_PADDING_BYTES(0x2); // Zero string terminator
     Settings flags;
     u8 font_region;
     WriteDate creation_date;
@@ -426,9 +443,9 @@ struct RegisterInfoPrivate {
 static_assert(sizeof(RegisterInfoPrivate) == 0xA4, "RegisterInfoPrivate is an invalid size");
 
 struct AdminInfo {
-    u64 application_id;
-    u32 application_area_id;
-    u16 crc_change_counter;
+    u64_be application_id;
+    u32_be application_area_id;
+    u16 crc_counter;
     u8 flags;
     PackedTagType tag_type;
     AppAreaVersion app_area_version;
