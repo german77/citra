@@ -196,7 +196,7 @@ void Module::Interface::OpenAppData(Kernel::HLERequestContext& ctx) {
 void Module::Interface::InitializeWriteAppData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x14, 18, 2);
     u32 access_id = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
+    [[maybe_unused]] u32 size = rp.Pop<u32>();
     std::vector<u8> buffer = rp.PopStaticBuffer();
 
     const auto result = nfc->device->CreateApplicationArea(access_id, buffer);
@@ -220,7 +220,7 @@ void Module::Interface::ReadAppData(Kernel::HLERequestContext& ctx) {
 
 void Module::Interface::WriteAppData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x16, 12, 2);
-    u32 size = rp.Pop<u32>();
+    [[maybe_unused]] u32 size = rp.Pop<u32>();
     std::vector<u8> tag_uuid_info = rp.PopStaticBuffer();
     std::vector<u8> buffer = rp.PopStaticBuffer();
 
@@ -289,10 +289,10 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
 
 void Module::Interface::Format(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x401, 3, 2);
-    u32 unknown1 = rp.Pop<u32>();
-    u32 unknown2 = rp.Pop<u32>();
-    u32 unknown3 = rp.Pop<u32>();
-    std::vector<u8> buffer = rp.PopStaticBuffer();
+    [[maybe_unused]] u32 unknown1 = rp.Pop<u32>();
+    [[maybe_unused]] u32 unknown2 = rp.Pop<u32>();
+    [[maybe_unused]] u32 unknown3 = rp.Pop<u32>();
+    [[maybe_unused]] std::vector<u8> buffer = rp.PopStaticBuffer();
 
     const auto result = nfc->device->Format();
 
