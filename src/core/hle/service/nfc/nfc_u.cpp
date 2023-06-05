@@ -37,7 +37,7 @@ NFC_U::NFC_U(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {IPC::MakeHeader(0x0017, 0, 0), &NFC_U::GetRegisterInfo, "GetRegisterInfo"},
         {IPC::MakeHeader(0x0018, 0, 0), &NFC_U::GetCommonInfo, "GetCommonInfo"},
         {IPC::MakeHeader(0x0019, 0, 0), &NFC_U::GetAppDataInitStruct, "GetAppDataInitStruct"},
-        {IPC::MakeHeader(0x001A, 0, 0), nullptr, "Unknown0x1A"},
+        {IPC::MakeHeader(0x001A, 0, 0), &NFC_U::LoadAmiiboPartially, "LoadAmiiboPartially"},
         {IPC::MakeHeader(0x001B, 0, 0), &NFC_U::GetIdentificationBlock, "GetIdentificationBlock"},
         {IPC::MakeHeader(0x001C, 0, 0), nullptr, "Unknown0x1C"},
         {IPC::MakeHeader(0x001D, 0, 0), nullptr, "Unknown0x1D"},

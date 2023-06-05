@@ -37,6 +37,8 @@ public:
     ResultCode StopDetection();
     ResultCode Mount();
     ResultCode MountAmiibo();
+    ResultCode PartiallyMount();
+    ResultCode PartiallyMountAmiibo();
     ResultCode ResetTagScanState();
     ResultCode Flush();
 

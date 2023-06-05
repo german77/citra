@@ -488,6 +488,28 @@ void Module::Interface::GetAppDataInitStruct(Kernel::HLERequestContext& ctx) {
     rb.PushRaw<InitialStruct>(empty);
 }
 
+void Module::Interface::LoadAmiiboPartially(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x1A, 0, 0);
+
+    LOG_INFO(Service_NFC, "called");
+
+    ResultCode result = RESULT_SUCCESS;
+    switch (nfc->nfc_mode) {
+    case CommunicationMode::Ntag:
+        result = nfc->device->PartiallyMount();
+        break;
+    case CommunicationMode::Amiibo:
+        result = nfc->device->PartiallyMountAmiibo();
+        break;
+    default:
+        result = ResultCommandInvalidForState;
+        break;
+    }
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(result);
+}
+
 void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x1B, 0, 0);
 
@@ -643,7 +665,7 @@ bool Module::Interface::IsTagActive() {
 
     const auto state = nfc->device->GetCurrentState();
     return state == DeviceState::TagFound || state == DeviceState::TagMounted ||
-           state == DeviceState::TrainTagMounted;
+           state == DeviceState::TagPartiallyMounted;
 }
 bool Module::Interface::LoadAmiibo(const std::string& fullpath) {
     std::lock_guard lock(HLE::g_hle_lock);

@@ -129,7 +129,8 @@ void NfcDevice::CloseAmiibo() {
 
     LOG_INFO(Service_NFC, "Amiibo removed");
 
-    if (device_state == DeviceState::TagMounted || device_state == DeviceState::TrainTagMounted) {
+    if (device_state == DeviceState::TagMounted ||
+        device_state == DeviceState::TagPartiallyMounted) {
         ResetTagScanState();
     }
 
@@ -196,7 +197,8 @@ ResultCode NfcDevice::StopCommunication() {
         return ResultCommandInvalidForState;
     }
 
-    if (device_state == DeviceState::TagMounted || device_state == DeviceState::TrainTagMounted) {
+    if (device_state == DeviceState::TagMounted ||
+        device_state == DeviceState::TagPartiallyMounted) {
         ResetTagScanState();
     }
 
@@ -234,7 +236,8 @@ ResultCode NfcDevice::StopDetection() {
         return connection_result;
     }
 
-    if (device_state == DeviceState::TagMounted || device_state == DeviceState::TrainTagMounted) {
+    if (device_state == DeviceState::TagMounted ||
+        device_state == DeviceState::TagPartiallyMounted) {
         ResetTagScanState();
     }
 
@@ -366,8 +369,53 @@ ResultCode NfcDevice::MountAmiibo() {
     return Mount();
 }
 
+ResultCode NfcDevice::PartiallyMount() {
+    if (device_state != DeviceState::TagFound) {
+        LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
+        const auto connection_result = CheckConnectionState();
+        if (connection_result.IsSuccess()) {
+            return ResultCommandInvalidForState;
+        }
+        return connection_result;
+    }
+
+    if (!AmiiboCrypto::IsAmiiboValid(encrypted_tag.file)) {
+        LOG_ERROR(Service_NFC, "Not an amiibo");
+        return ResultNotAnAmiibo;
+    }
+
+    // The loaded amiibo is not encrypted
+    if (is_plain_amiibo) {
+        device_state = DeviceState::TagPartiallyMounted;
+        return RESULT_SUCCESS;
+    }
+
+    if (!AmiiboCrypto::DecodeAmiibo(encrypted_tag.file, tag.file)) {
+        LOG_ERROR(Service_NFC, "Can't decode amiibo {}", device_state);
+        return ResultCorruptedData;
+    }
+
+    device_state = DeviceState::TagPartiallyMounted;
+    return RESULT_SUCCESS;
+}
+
+ResultCode NfcDevice::PartiallyMountAmiibo() {
+    TagInfo tag_info{};
+    const auto result = GetTagInfo(tag_info);
+
+    if (result.IsError()) {
+        return result;
+    }
+
+    if (tag_info.tag_type != PackedTagType::Type2) {
+        return ResultNotAnAmiibo;
+    }
+
+    return PartiallyMount();
+}
 ResultCode NfcDevice::ResetTagScanState() {
-    if (device_state != DeviceState::TagMounted && device_state != DeviceState::TrainTagMounted) {
+    if (device_state != DeviceState::TagMounted &&
+        device_state != DeviceState::TagPartiallyMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         const auto connection_result = CheckConnectionState();
         if (connection_result.IsSuccess()) {
@@ -397,7 +445,7 @@ ResultCode NfcDevice::GetTagInfo2(TagInfo2& tag_info) const {
 
 ResultCode NfcDevice::GetTagInfo(TagInfo& tag_info) const {
     if (device_state != DeviceState::TagFound && device_state != DeviceState::TagMounted &&
-        device_state != DeviceState::TrainTagMounted) {
+        device_state != DeviceState::TagPartiallyMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         const auto connection_result = CheckConnectionState();
         if (connection_result.IsSuccess()) {
@@ -451,7 +499,8 @@ ResultCode NfcDevice::GetCommonInfo(CommonInfo& common_info) const {
 }
 
 ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
-    if (device_state != DeviceState::TagMounted && device_state != DeviceState::TrainTagMounted) {
+    if (device_state != DeviceState::TagMounted &&
+        device_state != DeviceState::TagPartiallyMounted) {
         LOG_ERROR(Service_NFC, "Wrong device state {}", device_state);
         const auto connection_result = CheckConnectionState();
         if (connection_result.IsSuccess()) {

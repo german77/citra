@@ -41,7 +41,7 @@ enum class DeviceState : u32 {
     TagFound = 3,
     TagRemoved = 4,
     TagMounted = 5,
-    TrainTagMounted = 6, // Validate this one seems to have other name
+    TagPartiallyMounted = 6, // Validate this one seems to have other name
 };
 
 enum class ModelType : u32 {

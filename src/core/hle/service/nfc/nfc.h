@@ -286,6 +286,15 @@ public:
         void GetAppDataInitStruct(Kernel::HLERequestContext& ctx);
 
         /**
+         * NFC::LoadAmiiboPartially service function
+         *  Inputs:
+         *      0 : Header code [0x001A0000]
+         *  Outputs:
+         *      1 : Result of function, 0 on success, otherwise error code
+         */
+        void LoadAmiiboPartially(Kernel::HLERequestContext& ctx);
+
+        /**
          * NFC::GetIdentificationBlock service function
          *  Inputs:
          *      0 : Header code [0x001B0000]
