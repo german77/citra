@@ -43,7 +43,7 @@ void Module::Interface::Initialize(Kernel::HLERequestContext& ctx) {
         nfc->device->Initialize();
         break;
     case CommunicationMode::TrainTag:
-        LOG_ERROR(Service_NFC, "mode {} not implemented", communication_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", communication_mode);
         break;
     default:
         result = ResultInvalidArgumentValue;
@@ -77,7 +77,7 @@ void Module::Interface::Shutdown(Kernel::HLERequestContext& ctx) {
         nfc->device->Finalize();
         break;
     case CommunicationMode::TrainTag:
-        LOG_ERROR(Service_NFC, "mode {} not implemented", communication_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", communication_mode);
         break;
     default:
         result = ResultInvalidArgumentValue;
@@ -98,7 +98,7 @@ void Module::Interface::StartCommunication(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         rb.Push(RESULT_SUCCESS);
         return;
     }
@@ -115,14 +115,14 @@ void Module::Interface::StopCommunication(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         rb.Push(RESULT_SUCCESS);
         return;
     }
 
     // TODO: call stop communication instead
     const auto result = nfc->device->StopCommunication();
-    rb.Push(RESULT_SUCCESS);
+    rb.Push(result);
 }
 
 void Module::Interface::StartTagScanning(Kernel::HLERequestContext& ctx) {
@@ -159,7 +159,7 @@ void Module::Interface::StopTagScanning(Kernel::HLERequestContext& ctx) {
         result = nfc->device->StopDetection();
         break;
     case CommunicationMode::TrainTag:
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         break;
     default:
         result = ResultCommandInvalidForState;
@@ -220,7 +220,7 @@ void Module::Interface::UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx) {
     ResultCode result = RESULT_SUCCESS;
     switch (nfc->nfc_mode) {
     case CommunicationMode::Ntag:
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         break;
     case CommunicationMode::Amiibo:
         result = nfc->device->Flush();
@@ -240,7 +240,7 @@ void Module::Interface::GetTagInRangeEvent(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(ResultCommandInvalidForState);
         return;
@@ -257,7 +257,7 @@ void Module::Interface::GetTagOutOfRangeEvent(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
         rb.Push(ResultCommandInvalidForState);
         return;
@@ -275,7 +275,7 @@ void Module::Interface::GetTagState(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
     } else {
         state = nfc->device->GetCurrentState();
     }
@@ -291,7 +291,7 @@ void Module::Interface::CommunicationGetStatus(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
         rb.Push(RESULT_SUCCESS);
         rb.PushEnum(CommunicationState::Idle);
@@ -311,7 +311,7 @@ void Module::Interface::GetTagInfo2(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(26, 0);
         rb.Push(RESULT_SUCCESS);
         rb.PushRaw<TagInfo2>({});
@@ -331,7 +331,7 @@ void Module::Interface::GetTagInfo(Kernel::HLERequestContext& ctx) {
     LOG_INFO(Service_NFC, "called");
 
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
-        LOG_ERROR(Service_NFC, "mode {} not implemented", nfc->nfc_mode);
+        LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(12, 0);
         rb.Push(RESULT_SUCCESS);
         rb.PushRaw<TagInfo>({});
@@ -579,7 +579,6 @@ void Module::Interface::GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx) {
 }
 
 void Module::Interface::SetRegisterInfo(Kernel::HLERequestContext& ctx) {
-    // Please fix this part it's probably wrong
     IPC::RequestParser rp(ctx, 0x404, 41, 0);
     const auto register_info = rp.PopRaw<RegisterInfoPrivate>();
 

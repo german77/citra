@@ -42,12 +42,12 @@ NFC_M::NFC_M(std::shared_ptr<Module> nfc) : Module::Interface(std::move(nfc), "n
         {IPC::MakeHeader(0x001B, 0, 0), &NFC_M::GetIdentificationBlock, "GetIdentificationBlock"},
         // nfc:m
         {IPC::MakeHeader(0x0401, 3, 2), &NFC_M::Format, "Format"},
-        {IPC::MakeHeader(0x0402, 0, 0),&NFC_M::GetAdminInfo, "GetAdminInfo"},
-        {IPC::MakeHeader(0x0403, 0, 0),&NFC_M::GetEmptyRegisterInfo, "GetEmptyRegisterInfo"},
-        {IPC::MakeHeader(0x0404, 41, 0),&NFC_M::SetRegisterInfo, "SetRegisterInfo"},
-        {IPC::MakeHeader(0x0405, 0, 0),&NFC_M::DeleteRegisterInfo, "DeleteRegisterInfo"},
-        {IPC::MakeHeader(0x0406, 0, 0),& NFC_M::DeleteApplicationArea, "DeleteApplicationArea"},
-        {IPC::MakeHeader(0x0407, 0, 0),& NFC_M::ExistsApplicationArea, "ExistsApplicationArea"}
+        {IPC::MakeHeader(0x0402, 0, 0), &NFC_M::GetAdminInfo, "GetAdminInfo"},
+        {IPC::MakeHeader(0x0403, 0, 0), &NFC_M::GetEmptyRegisterInfo, "GetEmptyRegisterInfo"},
+        {IPC::MakeHeader(0x0404, 41, 0), &NFC_M::SetRegisterInfo, "SetRegisterInfo"},
+        {IPC::MakeHeader(0x0405, 0, 0), &NFC_M::DeleteRegisterInfo, "DeleteRegisterInfo"},
+        {IPC::MakeHeader(0x0406, 0, 0), &NFC_M::DeleteApplicationArea, "DeleteApplicationArea"},
+        {IPC::MakeHeader(0x0407, 0, 0), &NFC_M::ExistsApplicationArea, "ExistsApplicationArea"}
         // clang-format on
     };
     RegisterHandlers(functions);

@@ -78,7 +78,6 @@ bool NfcDevice::LoadAmiibo(std::string filename) {
     }
 
     // TODO: Filter by allowed_protocols here
-    GetAmiiboDate();
     is_plain_amiibo = AmiiboCrypto::IsAmiiboValid(tag.file);
     is_write_protected = false;
 
@@ -101,7 +100,7 @@ bool NfcDevice::LoadAmiibo(std::string filename) {
     // Fallback for encrypted amiibos without keys
     if (!AmiiboCrypto::IsKeyAvailable()) {
         LOG_INFO(Service_NFC, "Loading amiibo without keys");
-        memcpy(&encrypted_tag.file, &tag.file, sizeof(EncryptedNTAG215File));
+        memcpy(&encrypted_tag.raw, &tag.raw, sizeof(EncryptedNTAG215File));
         tag.file = {};
         BuildAmiiboWithoutKeys();
         is_plain_amiibo = true;
@@ -110,7 +109,7 @@ bool NfcDevice::LoadAmiibo(std::string filename) {
     }
 
     LOG_INFO(Service_NFC, "Loading amiibo with keys");
-    memcpy(&encrypted_tag.file, &tag.file, sizeof(EncryptedNTAG215File));
+    memcpy(&encrypted_tag.raw, &tag.raw, sizeof(EncryptedNTAG215File));
     tag.file = {};
     return true;
 }
@@ -475,17 +474,13 @@ ResultCode NfcDevice::GetCommonInfo(CommonInfo& common_info) const {
         return connection_result;
     }
 
-    if (&common_info == nullptr) {
-        return ResultInvalidArgument;
-    }
-
     const auto& settings = tag.file.settings;
     const auto& model_info_data = tag.file.model_info;
 
     // TODO: Validate this data
     common_info = {
         .last_write_date = settings.write_date.GetWriteDate(),
-        .write_counter = tag.file.write_counter,
+        .application_write_counter = tag.file.application_write_counter,
         .character_id = model_info_data.character_id,
         .character_variant = model_info_data.character_variant,
         .series = model_info_data.series,
@@ -507,10 +502,6 @@ ResultCode NfcDevice::GetModelInfo(ModelInfo& model_info) const {
             return ResultCommandInvalidForState;
         }
         return connection_result;
-    }
-
-    if (&model_info == nullptr) {
-        return ResultInvalidArgument;
     }
 
     const auto& model_info_data = encrypted_tag.file.user_memory.model_info;
@@ -535,24 +526,18 @@ ResultCode NfcDevice::GetRegisterInfo(RegisterInfo& register_info) const {
         return connection_result;
     }
 
-    if (&register_info == nullptr) {
-        return ResultInvalidArgument;
-    }
-
     if (tag.file.settings.settings.amiibo_initialized == 0) {
         return ResultRegistrationIsNotInitialized;
     }
 
     const auto& settings = tag.file.settings;
 
-    auto mii = tag.file.owner_mii;
-
     // TODO: Validate this data
     register_info = {
         .mii_data = tag.file.owner_mii,
         .owner_mii_aes_ccm = tag.file.owner_mii_aes_ccm,
         .amiibo_name = settings.amiibo_name,
-        .flags = settings.settings,
+        .flags = static_cast<u8>(settings.settings.raw & 0xf),
         .font_region = settings.country_code_id,
         .creation_date = settings.init_date.GetWriteDate(),
     };
@@ -582,6 +567,19 @@ ResultCode NfcDevice::GetAdminInfo(AdminInfo& admin_info) const {
         application_id = tag.file.application_id;
         app_area_version =
             static_cast<AppAreaVersion>(application_id >> application_id_version_offset & 0xf);
+
+        switch (app_area_version) {
+        case AppAreaVersion::Nintendo3DS:
+        case AppAreaVersion::Nintendo3DSv2:
+            app_area_version = AppAreaVersion::Nintendo3DS;
+            break;
+        case AppAreaVersion::NintendoWiiU:
+            app_area_version = AppAreaVersion::NintendoWiiU;
+            break;
+        default:
+            app_area_version = AppAreaVersion::NotSet;
+            break;
+        }
 
         // Restore application id to original value
         if (application_id >> 0x38 != 0) {
@@ -862,11 +860,6 @@ ResultCode NfcDevice::RecreateApplicationArea(u32 access_id, std::span<const u8>
         return connection_result;
     }
 
-    if (&data == nullptr) {
-        LOG_ERROR(Service_NFC, "Data is null");
-        return ResultInvalidArgument;
-    }
-
     if (data.size() > sizeof(ApplicationArea)) {
         LOG_ERROR(Service_NFC, "Wrong data size {}", data.size());
         return ResultInvalidArgumentValue;
@@ -960,10 +953,6 @@ ResultCode NfcDevice::ApplicationAreaExist(bool& has_application_area) {
             return ResultCommandInvalidForState;
         }
         return connection_result;
-    }
-
-    if (&has_application_area == nullptr) {
-        return ResultInvalidArgument;
     }
 
     has_application_area = tag.file.settings.settings.appdata_initialized.Value() != 0;

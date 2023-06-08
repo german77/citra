@@ -160,15 +160,15 @@ HashSeed GetSeed(const NTAG215File& data) {
 }
 
 std::vector<u8> GenerateInternalKey(const InternalKey& key, const HashSeed& seed) {
-    const std::size_t seedPart1Len = sizeof(key.magic_bytes) - key.magic_length;
+    const std::size_t seed_part1_len = sizeof(key.magic_bytes) - key.magic_length;
     const std::size_t string_size = key.type_string.size();
-    std::vector<u8> output(string_size + seedPart1Len);
+    std::vector<u8> output(string_size + seed_part1_len);
 
     // Copy whole type string
     memccpy(output.data(), key.type_string.data(), '\0', string_size);
 
     // Append (16 - magic_length) from the input seed
-    memcpy(output.data() + string_size, &seed, seedPart1Len);
+    memcpy(output.data() + string_size, &seed, seed_part1_len);
 
     // Append all bytes from magicBytes
     output.insert(output.end(), key.magic_bytes.begin(),
