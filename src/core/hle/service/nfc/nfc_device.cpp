@@ -217,7 +217,10 @@ ResultCode NfcDevice::StartDetection(TagProtocol allowed_protocol) {
         return ResultCommandInvalidForState;
     }
 
-    // TODO: Set console in search mode here
+    // Ensure external device is active
+    if (communication_state == CommunicationState::Idle) {
+        StartCommunication();
+    }
 
     device_state = DeviceState::SearchingForTag;
     allowed_protocols = allowed_protocol;
