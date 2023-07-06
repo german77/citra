@@ -32,7 +32,7 @@ void Module::Interface::Initialize(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
 
     if (nfc->nfc_mode != CommunicationMode::NotInitialized) {
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -66,7 +66,7 @@ void Module::Interface::Shutdown(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
 
     if (nfc->nfc_mode != communication_mode) {
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -162,7 +162,7 @@ void Module::Interface::StopTagScanning(Kernel::HLERequestContext& ctx) {
         LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         break;
     default:
-        result = ResultCommandInvalidForState;
+        result = ResultInvalidOperation;
         break;
     }
 
@@ -184,7 +184,7 @@ void Module::Interface::LoadAmiiboData(Kernel::HLERequestContext& ctx) {
         result = nfc->device->MountAmiibo();
         break;
     default:
-        result = ResultCommandInvalidForState;
+        result = ResultInvalidOperation;
         break;
     }
 
@@ -204,7 +204,7 @@ void Module::Interface::ResetTagScanState(Kernel::HLERequestContext& ctx) {
         result = nfc->device->ResetTagScanState();
         break;
     default:
-        result = ResultCommandInvalidForState;
+        result = ResultInvalidOperation;
         break;
     }
 
@@ -226,7 +226,7 @@ void Module::Interface::UpdateStoredAmiiboData(Kernel::HLERequestContext& ctx) {
         result = nfc->device->Flush();
         break;
     default:
-        result = ResultCommandInvalidForState;
+        result = ResultInvalidOperation;
         break;
     }
 
@@ -242,7 +242,7 @@ void Module::Interface::GetTagInRangeEvent(Kernel::HLERequestContext& ctx) {
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
         LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -259,7 +259,7 @@ void Module::Interface::GetTagOutOfRangeEvent(Kernel::HLERequestContext& ctx) {
     if (nfc->nfc_mode == CommunicationMode::TrainTag) {
         LOG_ERROR(Service_NFC, "CommunicationMode  {} not implemented", nfc->nfc_mode);
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -362,7 +362,7 @@ void Module::Interface::OpenAppData(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -382,7 +382,7 @@ void Module::Interface::InitializeWriteAppData(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -399,7 +399,7 @@ void Module::Interface::ReadAppData(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -421,7 +421,7 @@ void Module::Interface::WriteAppData(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -438,7 +438,7 @@ void Module::Interface::GetRegisterInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -457,7 +457,7 @@ void Module::Interface::GetCommonInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -476,7 +476,7 @@ void Module::Interface::GetAppDataInitStruct(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -502,7 +502,7 @@ void Module::Interface::LoadAmiiboPartially(Kernel::HLERequestContext& ctx) {
         result = nfc->device->PartiallyMountAmiibo();
         break;
     default:
-        result = ResultCommandInvalidForState;
+        result = ResultInvalidOperation;
         break;
     }
 
@@ -517,7 +517,7 @@ void Module::Interface::GetIdentificationBlock(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -550,7 +550,7 @@ void Module::Interface::GetAdminInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -569,7 +569,7 @@ void Module::Interface::GetEmptyRegisterInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -586,7 +586,7 @@ void Module::Interface::SetRegisterInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -603,7 +603,7 @@ void Module::Interface::DeleteRegisterInfo(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -620,7 +620,7 @@ void Module::Interface::DeleteApplicationArea(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
@@ -635,7 +635,7 @@ void Module::Interface::ExistsApplicationArea(Kernel::HLERequestContext& ctx) {
 
     if (nfc->nfc_mode != CommunicationMode::Amiibo) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-        rb.Push(ResultCommandInvalidForState);
+        rb.Push(ResultInvalidOperation);
         return;
     }
 
